@@ -8,6 +8,12 @@ Minimal Go HTTP backend.
 go run ./cmd/server
 ```
 
+Regenerate the Swagger documentation and start the server with:
+
+```sh
+./dev.sh
+```
+
 The server listens on `http://localhost:8080` by default. Set `PORT` to use a different port.
 
 Check the service with:

@@ -1,0 +1,19 @@
+info:
+  contact: {}
+paths:
+  /vijay:
+    get:
+      description: Returns a simple test response
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Test Vijay endpoint
+      tags:
+      - Test
+swagger: "2.0"

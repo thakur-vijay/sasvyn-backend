@@ -11,6 +11,10 @@ import (
 	"strconv"
 	"syscall"
 	"time"
+
+	_ "github.com/sasvyn/backend/docs"
+
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 func main() {
@@ -50,7 +54,12 @@ func main() {
 
 func newHandler() http.Handler {
 	mux := http.NewServeMux()
+
 	mux.HandleFunc("GET /healthz", healthHandler)
+	mux.HandleFunc("GET /vijay", vijayHandler)
+
+	mux.Handle("/swagger/", httpSwagger.WrapHandler)
+
 	return mux
 }
 
@@ -58,4 +67,20 @@ func healthHandler(writer http.ResponseWriter, _ *http.Request) {
 	writer.Header().Set("Content-Type", "application/json")
 	writer.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(writer).Encode(map[string]string{"status": "ok"})
+}
+
+// vijayHandler godoc
+// @Summary Test Vijay endpoint
+// @Description Returns a simple test response
+// @Tags Test
+// @Produce json
+// @Success 200 {object} map[string]string
+// @Router /vijay [get]
+func vijayHandler(writer http.ResponseWriter, _ *http.Request) {
+	writer.Header().Set("Content-Type", "application/json")
+	writer.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(writer).Encode(map[string]string{
+		"status": "ok",
+		"data":   "vijay",
+	})
 }
