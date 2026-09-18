@@ -1,7 +1,20 @@
 package users
 
-import "net/http"
+import (
+	"net/http"
 
-func RegisterRoutes(mux *http.ServeMux){
-	mux.HandleFunc("POST /socialLogin", SocialLogin)
+	"github.com/sasvyn/backend/internal/auth"
+)
+
+func RegisterRoutes(
+	mux *http.ServeMux,
+	handler *Handler,
+	authMiddleware *auth.Middleware,
+) {
+	mux.HandleFunc("POST /socialLogin", handler.SocialLogin)
+
+	mux.Handle(
+		"GET /me",
+		authMiddleware.RequireAuth(http.HandlerFunc(handler.Me)),
+	)
 }

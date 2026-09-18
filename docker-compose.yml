@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: sasvyn-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sasvyn
+      POSTGRES_PASSWORD: sasvyn
+      POSTGRES_DB: sasvyn
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
