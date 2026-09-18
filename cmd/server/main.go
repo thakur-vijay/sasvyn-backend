@@ -7,6 +7,7 @@ import (
 
 	"github.com/sasvyn/backend/internal/auth"
 	"github.com/sasvyn/backend/internal/database"
+	"github.com/sasvyn/backend/internal/ratelimit"
 	"github.com/sasvyn/backend/internal/sessions"
 	"github.com/sasvyn/backend/internal/users"
 )
@@ -23,6 +24,33 @@ func main() {
 	}
 	mux := http.NewServeMux()
 
+	defaultLimiter, err := ratelimit.New(
+		ratelimit.Policies.Default.Limit,
+		ratelimit.Policies.Default.Window,
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer defaultLimiter.Close()
+
+	authRefreshLimiter, err := ratelimit.New(
+		ratelimit.Policies.AuthRefresh.Limit,
+		ratelimit.Policies.AuthRefresh.Window,
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer authRefreshLimiter.Close()
+
+	socialLoginLimiter, err := ratelimit.New(
+		ratelimit.Policies.SocialLogin.Limit,
+		ratelimit.Policies.SocialLogin.Window,
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer socialLoginLimiter.Close()
+
 	sessionRepository := sessions.NewRepository(db)
 	sessionService := sessions.NewService(sessionRepository)
 
@@ -36,10 +64,15 @@ func main() {
 	userHandler := users.NewHandler(userRepository, sessionService)
 
 	users.RegisterRoutes(mux, userHandler, authMiddleware)
+	rateLimitedMux := ratelimit.PolicyMiddleware(
+		defaultLimiter,
+		authRefreshLimiter,
+		socialLoginLimiter,
+	)(mux)
 
 	log.Println("server listening on http://localhost:8080")
 
-	if err := http.ListenAndServe(":8080", mux); err != nil {
+	if err := http.ListenAndServe(":8080", rateLimitedMux); err != nil {
 		log.Fatal(err)
 	}
 }
