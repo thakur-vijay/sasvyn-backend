@@ -1,5 +1,7 @@
 package auth
 
+import "github.com/sasvyn/backend/internal/modules/users"
+
 type SocialLoginRequest struct {
 	AppleID  string `json:"apple_id"`
 	FullName string `json:"full_name"`
@@ -7,18 +9,9 @@ type SocialLoginRequest struct {
 }
 
 type SocialLoginResponse struct {
-	User         UserResponse `json:"user"`
-	AccessToken  string       `json:"access_token"`
-	RefreshToken string       `json:"refresh_token"`
-}
-
-type UserResponse struct {
-	ID        string `json:"id"`
-	AppleID   string `json:"apple_id"`
-	FullName  string `json:"full_name"`
-	Email     string `json:"email"`
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
+	User         users.User `json:"user"`
+	AccessToken  string     `json:"access_token"`
+	RefreshToken string     `json:"refresh_token"`
 }
 
 type RefreshRequest struct {

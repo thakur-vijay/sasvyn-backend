@@ -21,13 +21,13 @@ func BuildRouter(db *sql.DB, limiters *RateLimiters) http.Handler {
 	sessionRepository := sessions.NewRepository(db)
 	sessionService := sessions.NewService(sessionRepository)
 
-	authRepository := auth.NewRepository(db)
-	authHandler := auth.NewHandler(authRepository, sessionService)
-	auth.RegisterRoutes(mux, authHandler)
-
 	userRepository := users.NewRepository(db)
-	userHandler := users.NewHandler(userRepository, sessionService)
+	userHandler := users.NewHandler(userRepository)
 	users.RegisterRoutes(mux, userHandler)
+
+	authService := auth.NewService(userRepository, sessionService)
+	authHandler := auth.NewHandler(authService, sessionService)
+	auth.RegisterRoutes(mux, authHandler)
 
 	return ratelimit.PolicyMiddleware(
 		limiters.Default,

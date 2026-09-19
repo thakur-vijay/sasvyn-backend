@@ -1,25 +1,22 @@
 package auth
 
 import (
-	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
-	"time"
 
-	"github.com/google/uuid"
 	"github.com/sasvyn/backend/internal/modules/sessions"
 	"github.com/sasvyn/backend/internal/response"
 )
 
 type Handler struct {
-	repository     *Repository
+	service        *Service
 	sessionService *sessions.Service
 }
 
-func NewHandler(repository *Repository, sessionService *sessions.Service) *Handler {
+func NewHandler(service *Service, sessionService *sessions.Service) *Handler {
 	return &Handler{
-		repository:     repository,
+		service:        service,
 		sessionService: sessionService,
 	}
 }
@@ -32,49 +29,10 @@ func (h *Handler) SocialLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	existingUser, err := h.repository.GetByAppleID(r.Context(), request.AppleID)
-	if err == nil {
-		accessToken, refreshToken, err := h.sessionService.CreateSession(r.Context(), existingUser.ID)
-		if err != nil {
-			log.Printf("Create Session error: %v", err)
-			response.WriteError(w, http.StatusInternalServerError, "session could not be created")
-			return
-		}
-		payload := SocialLoginResponse{
-			User:         *existingUser,
-			AccessToken:  accessToken,
-			RefreshToken: refreshToken,
-		}
-		response.Write(w, http.StatusOK, "login successful", payload)
-		return
-	}
-
-	if err != sql.ErrNoRows {
-		log.Printf("GetByAppleID error: %v", err)
-		response.WriteError(w, http.StatusInternalServerError, "user could not be retrieved")
-		return
-	}
-
-	now := time.Now().UTC()
-
-	user := UserResponse{
-		ID:        uuid.NewString(),
-		AppleID:   request.AppleID,
-		FullName:  request.FullName,
-		Email:     request.Email,
-		CreatedAt: now.Format(time.RFC3339),
-		UpdatedAt: now.Format(time.RFC3339),
-	}
-
-	if err := h.repository.Create(r.Context(), user); err != nil {
-		response.WriteError(w, http.StatusInternalServerError, "user could not be created")
-		return
-	}
-
-	accessToken, refreshToken, err := h.sessionService.CreateSession(r.Context(), user.ID)
+	user, accessToken, refreshToken, err := h.service.SocialLogin(r.Context(), request)
 	if err != nil {
-		log.Printf("Create Session error: %v", err)
-		response.WriteError(w, http.StatusInternalServerError, "session could not be created")
+		log.Printf("Social login error: %v", err)
+		response.WriteError(w, http.StatusInternalServerError, "login could not be completed")
 		return
 	}
 

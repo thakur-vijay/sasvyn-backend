@@ -5,19 +5,16 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/sasvyn/backend/internal/modules/sessions"
 	"github.com/sasvyn/backend/internal/response"
 )
 
 type Handler struct {
-	repository     *Repository
-	sessionService *sessions.Service
+	repository *Repository
 }
 
-func NewHandler(repository *Repository, sessionService *sessions.Service) *Handler {
+func NewHandler(repository *Repository) *Handler {
 	return &Handler{
-		repository:     repository,
-		sessionService: sessionService,
+		repository: repository,
 	}
 }
 
