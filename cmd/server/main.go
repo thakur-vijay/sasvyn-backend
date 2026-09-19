@@ -54,16 +54,14 @@ func main() {
 	sessionRepository := sessions.NewRepository(db)
 	sessionService := sessions.NewService(sessionRepository)
 
-	authHandler := auth.NewHandler(sessionService)
-
+	authRepository := auth.NewRepository(db)
+	authHandler := auth.NewHandler(authRepository, sessionService)
 	auth.RegisterRoutes(mux, authHandler)
-
-	authMiddleware := auth.NewMiddleware(sessionService)
 
 	userRepository := users.NewRepository(db)
 	userHandler := users.NewHandler(userRepository, sessionService)
+	users.RegisterRoutes(mux, userHandler)
 
-	users.RegisterRoutes(mux, userHandler, authMiddleware)
 	rateLimitedMux := ratelimit.PolicyMiddleware(
 		defaultLimiter,
 		authRefreshLimiter,

@@ -12,8 +12,9 @@ type Limiter struct {
 	limit  int
 	window time.Duration
 
-	clients map[string]*client
-	stop    chan struct{}
+	clients   map[string]*client
+	stop      chan struct{}
+	closeOnce sync.Once
 }
 
 type client struct {
@@ -100,5 +101,7 @@ func (l *Limiter) Allow(key string) (bool, int, time.Duration) {
 }
 
 func (l *Limiter) Close() {
-	close(l.stop)
+	l.closeOnce.Do(func() {
+		close(l.stop)
+	})
 }

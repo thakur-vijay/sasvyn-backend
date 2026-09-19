@@ -154,6 +154,7 @@ func TestClientIP(t *testing.T) {
 	tests := []struct {
 		name       string
 		remoteAddr string
+		headers    map[string]string
 		expected   string
 	}{
 		{
@@ -171,12 +172,31 @@ func TestClientIP(t *testing.T) {
 			remoteAddr: "192.168.1.10",
 			expected:   "192.168.1.10",
 		},
+		{
+			name:       "X-Forwarded-For takes precedence",
+			remoteAddr: "10.0.0.1:1234",
+			headers: map[string]string{
+				"X-Forwarded-For": "203.0.113.7, 10.0.0.1",
+			},
+			expected: "203.0.113.7",
+		},
+		{
+			name:       "X-Real-IP is used when forwarded is absent",
+			remoteAddr: "10.0.0.1:1234",
+			headers: map[string]string{
+				"X-Real-IP": "198.51.100.8",
+			},
+			expected: "198.51.100.8",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, "/test", nil)
 			req.RemoteAddr = tt.remoteAddr
+			for key, value := range tt.headers {
+				req.Header.Set(key, value)
+			}
 
 			got := clientIP(req)
 
@@ -188,5 +208,52 @@ func TestClientIP(t *testing.T) {
 				)
 			}
 		})
+	}
+}
+
+func TestMiddleware_WithCustomKeyFunc(t *testing.T) {
+	limiter, err := New(1, time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer limiter.Close()
+
+	keyFunc := func(r *http.Request) string {
+		return r.Header.Get("X-Auth-User")
+	}
+
+	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	handler := MiddlewareWithKeyFunc(limiter, keyFunc)(next)
+
+	req1 := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req1.Header.Set("X-Auth-User", "user-1")
+	req1.RemoteAddr = "10.0.0.1:1234"
+
+	rec1 := httptest.NewRecorder()
+	handler.ServeHTTP(rec1, req1)
+
+	req2 := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req2.Header.Set("X-Auth-User", "user-1")
+	req2.RemoteAddr = "10.0.0.2:4321"
+
+	rec2 := httptest.NewRecorder()
+	handler.ServeHTTP(rec2, req2)
+
+	if rec2.Code != http.StatusTooManyRequests {
+		t.Fatalf("expected rate limit for same custom key, got %d", rec2.Code)
+	}
+
+	req3 := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req3.Header.Set("X-Auth-User", "user-2")
+	req3.RemoteAddr = "10.0.0.2:4321"
+
+	rec3 := httptest.NewRecorder()
+	handler.ServeHTTP(rec3, req3)
+
+	if rec3.Code != http.StatusOK {
+		t.Fatalf("expected different custom key to be allowed, got %d", rec3.Code)
 	}
 }

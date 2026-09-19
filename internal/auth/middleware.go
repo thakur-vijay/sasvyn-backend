@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/sasvyn/backend/internal/response"
 	"github.com/sasvyn/backend/internal/sessions"
 )
 
@@ -25,19 +26,19 @@ func (m *Middleware) RequireAuth(next http.Handler) http.Handler {
 		header := r.Header.Get("Authorization")
 
 		if header == "" {
-			http.Error(w, "missing authorization header", http.StatusUnauthorized)
+			response.WriteError(w, http.StatusUnauthorized, "authorization header is required")
 			return
 		}
 
 		parts := strings.SplitN(header, " ", 2)
 		if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
-			http.Error(w, "invalid, authorization header", http.StatusUnauthorized)
+			response.WriteError(w, http.StatusUnauthorized, "authorization header is invalid")
 			return
 		}
 
 		session, err := m.sessionService.ValidateAccessToken(r.Context(), parts[1])
 		if err != nil {
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			response.WriteError(w, http.StatusUnauthorized, "authentication failed")
 			return
 		}
 

@@ -13,7 +13,7 @@ var Policies = struct {
 	SocialLogin Policy
 }{
 	Default: Policy{
-		Limit:  100,
+		Limit:  20,
 		Window: time.Minute,
 	},
 
