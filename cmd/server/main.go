@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/joho/godotenv"
 	"github.com/sasvyn/backend/internal/auth"
 	"github.com/sasvyn/backend/internal/database"
 	"github.com/sasvyn/backend/internal/ratelimit"
@@ -13,6 +14,9 @@ import (
 )
 
 func main() {
+	if err := godotenv.Load(); err != nil {
+		log.Println("Warning: .env file not found")
+	}
 	db, err := database.Connect(context.Background())
 	if err != nil {
 		log.Fatal(err)
