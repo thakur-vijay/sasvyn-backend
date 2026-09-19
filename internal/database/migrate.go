@@ -2,6 +2,8 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
+	"os"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -9,9 +11,15 @@ import (
 )
 
 func Migrate(db *sql.DB) error {
+	databaseURL := os.Getenv("DATABASE_URL")
+
+	if databaseURL == "" {
+		return fmt.Errorf("DATABASE_URL is not set")
+	}
+
 	m, err := migrate.New(
 		"file://internal/database/migrations",
-		"postgres://sasvyn:sasvyn@localhost:5433/sasvyn?sslmode=disable",
+		databaseURL,
 	)
 	if err != nil {
 		return err
