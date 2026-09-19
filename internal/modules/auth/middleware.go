@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/sasvyn/backend/internal/modules/sessions"
 	"github.com/sasvyn/backend/internal/response"
-	"github.com/sasvyn/backend/internal/sessions"
 )
 
 type contextKey string

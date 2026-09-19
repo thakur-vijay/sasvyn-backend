@@ -4,10 +4,10 @@ import (
 	"database/sql"
 	"net/http"
 
-	"github.com/sasvyn/backend/internal/auth"
+	"github.com/sasvyn/backend/internal/modules/auth"
+	"github.com/sasvyn/backend/internal/modules/sessions"
+	"github.com/sasvyn/backend/internal/modules/users"
 	"github.com/sasvyn/backend/internal/ratelimit"
-	"github.com/sasvyn/backend/internal/sessions"
-	"github.com/sasvyn/backend/internal/users"
 )
 
 func BuildRouter(db *sql.DB, limiters *RateLimiters) http.Handler {

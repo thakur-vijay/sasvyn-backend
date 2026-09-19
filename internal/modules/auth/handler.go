@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/sasvyn/backend/internal/modules/sessions"
 	"github.com/sasvyn/backend/internal/response"
-	"github.com/sasvyn/backend/internal/sessions"
 )
 
 type Handler struct {
