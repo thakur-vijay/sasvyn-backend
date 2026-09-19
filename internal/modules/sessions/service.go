@@ -159,3 +159,7 @@ func (s *Service) RefreshSession(
 
 	return newAccessToken, newRefreshToken, nil
 }
+
+func (s *Service) Logout(ctx context.Context, sessionID string) error {
+	return s.repository.Revoke(ctx, sessionID)
+}

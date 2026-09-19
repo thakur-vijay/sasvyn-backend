@@ -107,3 +107,8 @@ func (r *Repository) UpdateTokens(
 
 	return err
 }
+
+func (r *Repository) Revoke(ctx context.Context, sessionID string) error {
+	_, err := r.db.ExecContext(ctx, `UPDATE sessions SET revoked_at = NOW() WHERE id = $1`, sessionID)
+	return err
+}

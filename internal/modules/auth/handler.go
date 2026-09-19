@@ -69,6 +69,22 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 	response.Write(w, http.StatusOK, "token refreshed successfully", payload)
 }
 
+func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
+	sessionID, ok := SessionID(r.Context())
+	if !ok {
+		response.WriteError(w, http.StatusUnauthorized, "authentication required")
+		return
+	}
+
+	if err := h.sessionService.Logout(r.Context(), sessionID); err != nil {
+		log.Printf("Logout error: %v", err)
+		response.WriteError(w, http.StatusInternalServerError, "logout failed")
+		return
+	}
+
+	response.Write(w, http.StatusOK, "logout successful", nil)
+}
+
 // func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
 // 	userID, ok := UserID(r.Context())
 // 	if !ok {

@@ -11,7 +11,10 @@ import (
 
 type contextKey string
 
-const userIDKey contextKey = "user_id"
+const (
+	userIDKey    contextKey = "user_id"
+	sessionIDKey contextKey = "session_id"
+)
 
 type Middleware struct {
 	sessionService *sessions.Service
@@ -43,6 +46,7 @@ func (m *Middleware) RequireAuth(next http.Handler) http.Handler {
 		}
 
 		ctx := context.WithValue(r.Context(), userIDKey, session.UserID)
+		ctx = context.WithValue(ctx, sessionIDKey, session.ID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -50,4 +54,9 @@ func (m *Middleware) RequireAuth(next http.Handler) http.Handler {
 func UserID(ctx context.Context) (string, bool) {
 	userID, ok := ctx.Value(userIDKey).(string)
 	return userID, ok
+}
+
+func SessionID(ctx context.Context) (string, bool) {
+	sessionID, ok := ctx.Value(sessionIDKey).(string)
+	return sessionID, ok
 }
