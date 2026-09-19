@@ -3,16 +3,13 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"os"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
-func Migrate(db *sql.DB) error {
-	databaseURL := os.Getenv("DATABASE_URL")
-
+func Migrate(db *sql.DB, databaseURL string) error {
 	if databaseURL == "" {
 		return fmt.Errorf("DATABASE_URL is not set")
 	}
@@ -24,6 +21,7 @@ func Migrate(db *sql.DB) error {
 	if err != nil {
 		return err
 	}
+	defer m.Close()
 
 	err = m.Up()
 	if err != nil && err != migrate.ErrNoChange {

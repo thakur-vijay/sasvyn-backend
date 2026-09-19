@@ -5,20 +5,26 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/sasvyn/backend/internal/app"
+	"github.com/sasvyn/backend/internal/config"
 )
 
 func main() {
-	if err := godotenv.Load(); err != nil {
+	if err := godotenv.Load(".env"); err != nil {
 		log.Println("Warning: .env file not found")
 	}
 
-	application, err := app.New()
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	application, err := app.New(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer application.Close()
 
-	if err := application.Run(":8080"); err != nil {
+	if err := application.Run(cfg.Port); err != nil {
 		log.Fatal(err)
 	}
 }

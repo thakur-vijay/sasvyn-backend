@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"net/http"
 
+	"github.com/sasvyn/backend/internal/config"
 	"github.com/sasvyn/backend/internal/database"
 )
 
@@ -14,13 +15,17 @@ type App struct {
 	Limiters *RateLimiters
 }
 
-func New() (*App, error) {
-	db, err := database.Connect(context.Background())
+func New(cfg *config.Config) (*App, error) {
+	if cfg == nil {
+		return nil, nil
+	}
+
+	db, err := database.Connect(context.Background(), cfg.DatabaseURL)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := database.Migrate(db); err != nil {
+	if err := database.Migrate(db, cfg.DatabaseURL); err != nil {
 		db.Close()
 		return nil, err
 	}
