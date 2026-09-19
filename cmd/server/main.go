@@ -1,80 +1,24 @@
 package main
 
 import (
-	"context"
 	"log"
-	"net/http"
 
 	"github.com/joho/godotenv"
-	"github.com/sasvyn/backend/internal/auth"
-	"github.com/sasvyn/backend/internal/database"
-	"github.com/sasvyn/backend/internal/ratelimit"
-	"github.com/sasvyn/backend/internal/sessions"
-	"github.com/sasvyn/backend/internal/users"
+	"github.com/sasvyn/backend/internal/app"
 )
 
 func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Println("Warning: .env file not found")
 	}
-	db, err := database.Connect(context.Background())
+
+	application, err := app.New()
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer db.Close()
+	defer application.Close()
 
-	if err := database.Migrate(db); err != nil {
-		log.Fatal(err)
-	}
-	mux := http.NewServeMux()
-
-	defaultLimiter, err := ratelimit.New(
-		ratelimit.Policies.Default.Limit,
-		ratelimit.Policies.Default.Window,
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer defaultLimiter.Close()
-
-	authRefreshLimiter, err := ratelimit.New(
-		ratelimit.Policies.AuthRefresh.Limit,
-		ratelimit.Policies.AuthRefresh.Window,
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer authRefreshLimiter.Close()
-
-	socialLoginLimiter, err := ratelimit.New(
-		ratelimit.Policies.SocialLogin.Limit,
-		ratelimit.Policies.SocialLogin.Window,
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer socialLoginLimiter.Close()
-
-	sessionRepository := sessions.NewRepository(db)
-	sessionService := sessions.NewService(sessionRepository)
-
-	authRepository := auth.NewRepository(db)
-	authHandler := auth.NewHandler(authRepository, sessionService)
-	auth.RegisterRoutes(mux, authHandler)
-
-	userRepository := users.NewRepository(db)
-	userHandler := users.NewHandler(userRepository, sessionService)
-	users.RegisterRoutes(mux, userHandler)
-
-	rateLimitedMux := ratelimit.PolicyMiddleware(
-		defaultLimiter,
-		authRefreshLimiter,
-		socialLoginLimiter,
-	)(mux)
-
-	log.Println("server listening on http://localhost:8080")
-
-	if err := http.ListenAndServe(":8080", rateLimitedMux); err != nil {
+	if err := application.Run(":8080"); err != nil {
 		log.Fatal(err)
 	}
 }
