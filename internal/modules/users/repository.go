@@ -32,7 +32,8 @@ func (r *Repository) GetByAppleID(ctx context.Context, appleID string) (*User, e
 	if err != nil {
 		return nil, err
 	}
-
+	user.CreatedAt = user.CreatedAt.UTC()
+	user.UpdatedAt = user.UpdatedAt.UTC()
 	return &user, nil
 }
 
@@ -64,7 +65,8 @@ func (r *Repository) GetByID(ctx context.Context, id string) (*User, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	user.CreatedAt = user.CreatedAt.UTC()
+	user.UpdatedAt = user.UpdatedAt.UTC()
 	return &user, nil
 }
 
@@ -72,13 +74,36 @@ func (r *Repository) Update(
 	ctx context.Context,
 	id string,
 	input UpdateUserDTO,
-) error {
-	_, err := r.db.ExecContext(ctx, `
+) (*User, error) {
+	var user User
+
+	err := r.db.QueryRowContext(ctx, `
 		UPDATE users
 		SET full_name = $1,
+		    date_of_birth = $2,
 		    updated_at = NOW()
-		WHERE id = $2
-	`, input.FullName, id)
+		WHERE id = $3
+		RETURNING id, apple_id, full_name, email, date_of_birth, created_at, updated_at
+	`,
+		input.FullName,
+		input.DateOfBirth,
+		id,
+	).Scan(
+		&user.ID,
+		&user.AppleID,
+		&user.FullName,
+		&user.Email,
+		&user.DateOfBirth,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
 
-	return err
+	if err != nil {
+		return nil, err
+	}
+
+	user.CreatedAt = user.CreatedAt.UTC()
+	user.UpdatedAt = user.UpdatedAt.UTC()
+
+	return &user, nil
 }

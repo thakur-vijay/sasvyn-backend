@@ -35,7 +35,7 @@ func (s *Service) SocialLogin(
 			return users.User{}, "", "", err
 		}
 
-		now := time.Now().UTC().Format(time.RFC3339)
+		now := time.Now().UTC()
 		user = &users.User{
 			ID:        uuid.NewString(),
 			AppleID:   request.AppleID,

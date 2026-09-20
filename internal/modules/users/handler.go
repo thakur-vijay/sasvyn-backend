@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/sasvyn/backend/internal/response"
+	"github.com/sasvyn/backend/internal/validation"
 )
 
 type Handler struct {
@@ -46,7 +47,17 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.repository.Update(r.Context(), userID, request); err != nil {
+	if request.DateOfBirth != nil && !validation.IsISODate(*request.DateOfBirth) {
+		response.WriteError(
+			w,
+			http.StatusBadRequest,
+			"date_of_birth must be a valid date in YYYY-MM-DD format",
+		)
+		return
+	}
+
+	user, err := h.repository.Update(r.Context(), userID, request)
+	if err != nil {
 		if err == sql.ErrNoRows {
 			response.WriteError(w, http.StatusNotFound, "user was not found")
 			return
@@ -57,5 +68,5 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.Write(w, http.StatusOK, "user updated successfully", nil)
+	response.Write(w, http.StatusOK, "user updated successfully", user)
 }
