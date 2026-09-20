@@ -35,3 +35,27 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 	response.Write(w, http.StatusOK, "user retrieved successfully", user)
 }
+
+func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
+	userID := r.PathValue("id")
+
+	var request UpdateUserDTO
+
+	if err := response.DecodeJSON(r, &request); err != nil {
+		response.WriteError(w, http.StatusBadRequest, "request body is invalid")
+		return
+	}
+
+	if err := h.repository.Update(r.Context(), userID, request); err != nil {
+		if err == sql.ErrNoRows {
+			response.WriteError(w, http.StatusNotFound, "user was not found")
+			return
+		}
+
+		log.Printf("Update error: %v", err)
+		response.WriteError(w, http.StatusInternalServerError, "user could not be updated")
+		return
+	}
+
+	response.Write(w, http.StatusOK, "user updated successfully", nil)
+}

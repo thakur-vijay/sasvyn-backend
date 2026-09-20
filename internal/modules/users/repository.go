@@ -67,3 +67,18 @@ func (r *Repository) GetByID(ctx context.Context, id string) (*User, error) {
 
 	return &user, nil
 }
+
+func (r *Repository) Update(
+	ctx context.Context,
+	id string,
+	input UpdateUserDTO,
+) error {
+	_, err := r.db.ExecContext(ctx, `
+		UPDATE users
+		SET full_name = $1,
+		    updated_at = NOW()
+		WHERE id = $2
+	`, input.FullName, id)
+
+	return err
+}

@@ -10,7 +10,12 @@ func RegisterRoutes(
 	requireAuth func(http.Handler) http.Handler,
 ) {
 	mux.Handle(
-		"GET /{id}",
+		"GET /users/{id}",
 		requireAuth(http.HandlerFunc(handler.GetByID)),
+	)
+
+	mux.Handle(
+		"PUT /users/{id}",
+		requireAuth(http.HandlerFunc(handler.Update)),
 	)
 }

@@ -7,6 +7,11 @@ import (
 	"strings"
 )
 
+const (
+	authRefreshPath = "/auth/refresh"
+	socialLoginPath = "/auth/socialLogin"
+)
+
 type KeyFunc func(*http.Request) string
 
 func Middleware(limiter *Limiter) func(http.Handler) http.Handler {
@@ -78,11 +83,11 @@ func PolicyMiddleware(
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			limiter := defaultLimiter
 
-			switch r.Method + " " + r.URL.Path {
-			case "POST /auth/refresh":
+			switch {
+			case r.Method == http.MethodPost && hasRoutePath(r.URL.Path, authRefreshPath):
 				limiter = authRefreshLimiter
 
-			case "POST /socialLogin":
+			case r.Method == http.MethodPost && hasRoutePath(r.URL.Path, socialLoginPath):
 				limiter = socialLoginLimiter
 			}
 
@@ -135,11 +140,11 @@ func PolicyMiddlewareWithKeyFunc(
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			limiter := defaultLimiter
 
-			switch r.Method + " " + r.URL.Path {
-			case "POST /auth/refresh":
+			switch {
+			case r.Method == http.MethodPost && hasRoutePath(r.URL.Path, authRefreshPath):
 				limiter = authRefreshLimiter
 
-			case "POST /socialLogin":
+			case r.Method == http.MethodPost && hasRoutePath(r.URL.Path, socialLoginPath):
 				limiter = socialLoginLimiter
 			}
 
@@ -183,4 +188,8 @@ func PolicyMiddlewareWithKeyFunc(
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func hasRoutePath(path, route string) bool {
+	return path == route || strings.HasSuffix(path, route)
 }

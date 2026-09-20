@@ -7,7 +7,7 @@ func RegisterRoutes(
 	handler *Handler,
 	authMiddleware *Middleware,
 ) {
-	mux.HandleFunc("POST /socialLogin", handler.SocialLogin)
+	mux.HandleFunc("POST /auth/socialLogin", handler.SocialLogin)
 	mux.HandleFunc("POST /auth/refresh", handler.Refresh)
 
 	mux.Handle(
