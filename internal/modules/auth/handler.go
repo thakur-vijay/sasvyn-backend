@@ -31,8 +31,8 @@ func (h *Handler) SocialLogin(w http.ResponseWriter, r *http.Request) {
 
 	var request SocialLoginRequest
 
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		response.WriteError(w, http.StatusBadRequest, "request body is invalid")
+	if err := response.DecodeJSON(r, &request); err != nil {
+		response.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
