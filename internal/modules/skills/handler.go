@@ -40,6 +40,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := h.repository.Create(r.Context(), skill); err != nil {
 		response.WriteError(w, http.StatusInternalServerError, "failed to create skill")
+		return
 	}
 
 	response.Write(w, http.StatusCreated, "Skill added successfully", skill)
@@ -49,7 +50,8 @@ func (h *Handler) Fetch(w http.ResponseWriter, r *http.Request) {
 	userID, _ := auth.UserID(r.Context())
 	skills, err := h.repository.Fetch(r.Context(), userID)
 	if err != nil {
-		response.WriteError(w, http.StatusInternalServerError, "failed to create skill")
+		response.WriteError(w, http.StatusInternalServerError, "failed to fetch skills")
+		return
 	}
 
 	response.Write(w, http.StatusOK, "Skill fetched successfully", skills)
