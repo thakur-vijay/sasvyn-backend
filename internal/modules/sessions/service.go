@@ -143,6 +143,7 @@ func (s *Service) RefreshSession(
 	ctx context.Context,
 	refreshToken string,
 ) (string, string, error) {
+
 	session, err := s.ValidateRefreshToken(ctx, refreshToken)
 	if err != nil {
 		return "", "", err
@@ -158,11 +159,16 @@ func (s *Service) RefreshSession(
 		return "", "", err
 	}
 
+	now := time.Now().UTC()
+
+	newExpiresAt := now.Add(1 * time.Minute).Format(time.RFC3339)
+
 	err = s.repository.UpdateTokens(
 		ctx,
 		session.ID,
 		hashToken(newAccessToken),
 		hashToken(newRefreshToken),
+		newExpiresAt,
 	)
 	if err != nil {
 		return "", "", err

@@ -99,16 +99,19 @@ func (r *Repository) UpdateTokens(
 	sessionID string,
 	accessTokenHash string,
 	refreshTokenHash string,
+	expiresAt string,
 ) error {
 	_, err := r.db.ExecContext(ctx, `
 		UPDATE sessions
 		SET
 			access_token_hash = $1,
-			refresh_token_hash = $2
-		WHERE id = $3
+			refresh_token_hash = $2,
+			expires_at = $3
+		WHERE id = $4
 	`,
 		accessTokenHash,
 		refreshTokenHash,
+		expiresAt,
 		sessionID,
 	)
 
