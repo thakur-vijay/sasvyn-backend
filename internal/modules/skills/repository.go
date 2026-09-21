@@ -48,7 +48,8 @@ func (r *Repository) Fetch(ctx context.Context, userID string) ([]Skill, error) 
 		); err != nil {
 			return nil, err
 		}
-
+		skill.CreatedAt = skill.CreatedAt.UTC()
+		skill.UpdatedAt = skill.UpdatedAt.UTC()
 		skills = append(skills, skill)
 	}
 
@@ -56,4 +57,41 @@ func (r *Repository) Fetch(ctx context.Context, userID string) ([]Skill, error) 
 		return nil, err
 	}
 	return skills, nil
+}
+
+func (r *Repository) Update(ctx context.Context, skill Skill) error {
+	start := time.Now()
+	defer func() {
+		log.Printf("[DB] UpdateSkill: %v", time.Since(start))
+	}()
+
+	_, err := r.db.ExecContext(ctx, `UPDATE skills SET skill = $1, category = $2, updated_at = $3 WHERE id = $4 AND user_id = $5`, skill.Skill, skill.Category, skill.UpdatedAt, skill.ID, skill.UserID)
+	return err
+}
+
+func (r *Repository) Delete(ctx context.Context, skillID, userID string) error {
+	start := time.Now()
+	defer func() {
+		log.Printf("[DB] DeleteSkill: %v", time.Since(start))
+	}()
+
+	result, err := r.db.ExecContext(ctx, `
+		DELETE FROM skills
+		WHERE id = $1
+		  AND user_id = $2
+	`, skillID, userID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
 }
