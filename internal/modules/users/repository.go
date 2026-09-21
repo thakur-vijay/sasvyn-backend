@@ -3,6 +3,8 @@ package users
 import (
 	"context"
 	"database/sql"
+	"log"
+	"time"
 )
 
 type Repository struct {
@@ -14,6 +16,11 @@ func NewRepository(db *sql.DB) *Repository {
 }
 
 func (r *Repository) GetByAppleID(ctx context.Context, appleID string) (*User, error) {
+	start := time.Now()
+
+	defer func() {
+		log.Printf("[DB] GetByAppleID: %v", time.Since(start))
+	}()
 	var user User
 
 	err := r.db.QueryRowContext(ctx, `
@@ -38,6 +45,11 @@ func (r *Repository) GetByAppleID(ctx context.Context, appleID string) (*User, e
 }
 
 func (r *Repository) Create(ctx context.Context, user User) error {
+	start := time.Now()
+
+	defer func() {
+		log.Printf("[DB] CreateUser: %v", time.Since(start))
+	}()
 	_, err := r.db.ExecContext(ctx, `
 		INSERT INTO users (id, apple_id, full_name, email, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6)

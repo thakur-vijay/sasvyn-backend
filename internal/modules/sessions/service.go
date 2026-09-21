@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -35,6 +36,9 @@ func hashToken(token string) string {
 }
 
 func (s *Service) CreateSession(ctx context.Context, userID string) (string, string, error) {
+	start := time.Now()
+
+	tokenStart := time.Now()
 	accessToken, err := generateToken()
 	if err != nil {
 		return "", "", err
@@ -45,22 +49,29 @@ func (s *Service) CreateSession(ctx context.Context, userID string) (string, str
 		return "", "", err
 	}
 
+	log.Printf("[CreateSession] Token generation: %v", time.Since(tokenStart))
+
+	hashStart := time.Now()
+	accessTokenHash := hashToken(accessToken)
+	refreshTokenHash := hashToken(refreshToken)
+	log.Printf("[CreateSession] Hashing: %v", time.Since(hashStart))
 	now := time.Now().UTC()
 
 	session := Session{
 		ID:               uuid.NewString(),
 		UserID:           userID,
-		AccessTokenHash:  hashToken(accessToken),
-		RefreshTokenHash: hashToken(refreshToken),
+		AccessTokenHash:  accessTokenHash,
+		RefreshTokenHash: refreshTokenHash,
 		ExpiresAt:        now.Add(15 * time.Minute).Format(time.RFC3339),
 		RefreshExpiresAt: now.Add(30 * 24 * time.Hour).Format(time.RFC3339),
 		CreatedAt:        now.Format(time.RFC3339),
 	}
-
+	dbStart := time.Now()
 	if err := s.repository.Create(ctx, session); err != nil {
 		return "", "", err
 	}
-
+	log.Printf("[CreateSession] DB Create: %v", time.Since(dbStart))
+	log.Printf("[CreateSession] TOTAL: %v", time.Since(start))
 	return accessToken, refreshToken, nil
 }
 

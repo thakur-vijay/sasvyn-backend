@@ -3,6 +3,8 @@ package sessions
 import (
 	"context"
 	"database/sql"
+	"log"
+	"time"
 )
 
 type Repository struct {
@@ -14,6 +16,11 @@ func NewRepository(db *sql.DB) *Repository {
 }
 
 func (r *Repository) Create(ctx context.Context, session Session) error {
+	start := time.Now()
+
+	defer func() {
+		log.Printf("[DB] CreateSession: %v", time.Since(start))
+	}()
 	_, err := r.db.ExecContext(ctx, `INSERT INTO sessions (id, user_id, access_token_hash, refresh_token_hash, expires_at, refresh_expires_at, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7)`, session.ID, session.UserID, session.AccessTokenHash, session.RefreshTokenHash, session.ExpiresAt, session.RefreshExpiresAt, session.CreatedAt)
 
 	return err

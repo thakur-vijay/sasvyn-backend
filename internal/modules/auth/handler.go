@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/sasvyn/backend/internal/modules/sessions"
 	"github.com/sasvyn/backend/internal/response"
@@ -22,6 +23,12 @@ func NewHandler(service *Service, sessionService *sessions.Service) *Handler {
 }
 
 func (h *Handler) SocialLogin(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+
+	defer func() {
+		log.Printf("[SocialLogin] TOTAL: %v", time.Since(start))
+	}()
+
 	var request SocialLoginRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
