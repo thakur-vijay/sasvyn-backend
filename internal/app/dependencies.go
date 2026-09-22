@@ -6,6 +6,7 @@ import (
 
 	"github.com/sasvyn/backend/internal/api"
 	"github.com/sasvyn/backend/internal/modules/auth"
+	"github.com/sasvyn/backend/internal/modules/languages"
 	"github.com/sasvyn/backend/internal/modules/sessions"
 	"github.com/sasvyn/backend/internal/modules/skills"
 	"github.com/sasvyn/backend/internal/modules/users"
@@ -18,18 +19,21 @@ func BuildRouter(db *sql.DB, limiters *RateLimiters) http.Handler {
 
 	userRepository := users.NewRepository(db)
 	skillRepository := skills.NewRepository(db)
+	languagesRepository := languages.NewRepository(db)
 
 	authService := auth.NewService(userRepository, sessionService)
 	authHandler := auth.NewHandler(authService, sessionService)
 	authMiddleWare := auth.NewMiddleware(sessionService)
 	userHandler := users.NewHandler(userRepository)
 	skillsHandler := skills.NewHandler(skillRepository)
+	languagesHander := languages.NewHandler(languagesRepository)
 
 	router := api.NewRouter(api.Dependencies{
-		AuthHandler:    authHandler,
-		AuthMiddleware: authMiddleWare,
-		UserHandler:    userHandler,
-		SkillsHandler:  skillsHandler,
+		AuthHandler:      authHandler,
+		AuthMiddleware:   authMiddleWare,
+		UserHandler:      userHandler,
+		SkillsHandler:    skillsHandler,
+		LanguagesHandler: languagesHander,
 	})
 
 	return ratelimit.PolicyMiddleware(
