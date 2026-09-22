@@ -91,25 +91,3 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 
 	response.Write(w, http.StatusOK, "logout successful")
 }
-
-// func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
-// 	userID, ok := UserID(r.Context())
-// 	if !ok {
-// 		response.WriteError(w, http.StatusUnauthorized, "authentication is required")
-// 		return
-// 	}
-
-// 	user, err := h.repository.GetByID(r.Context(), userID)
-// 	if err != nil {
-// 		if err == sql.ErrNoRows {
-// 			response.WriteError(w, http.StatusNotFound, "user was not found")
-// 			return
-// 		}
-
-// 		log.Printf("GetByID error: %v", err)
-// 		response.WriteError(w, http.StatusInternalServerError, "user could not be retrieved")
-// 		return
-// 	}
-
-// 	response.Write(w, http.StatusOK, "user retrieved successfully", user)
-// }

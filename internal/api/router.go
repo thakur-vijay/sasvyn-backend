@@ -6,6 +6,7 @@ import (
 	"github.com/sasvyn/backend/internal/modules/auth"
 	"github.com/sasvyn/backend/internal/modules/languages"
 	"github.com/sasvyn/backend/internal/modules/skills"
+	"github.com/sasvyn/backend/internal/modules/upload"
 	"github.com/sasvyn/backend/internal/modules/users"
 )
 
@@ -17,6 +18,7 @@ type Dependencies struct {
 	UserHandler      *users.Handler
 	SkillsHandler    *skills.Handler
 	LanguagesHandler *languages.Handler
+	UploadHandler    *upload.Handler
 }
 
 func NewRouter(dependencies Dependencies) http.Handler {
@@ -28,6 +30,7 @@ func NewRouter(dependencies Dependencies) http.Handler {
 	users.RegisterRoutes(v1Mux, dependencies.UserHandler, dependencies.AuthMiddleware.RequireAuth)
 	skills.RegisterRoutes(v1Mux, dependencies.SkillsHandler, dependencies.AuthMiddleware.RequireAuth)
 	languages.RegisterRoutes(v1Mux, dependencies.LanguagesHandler, dependencies.AuthMiddleware.RequireAuth)
+	upload.RegisterRoutes(v1Mux, dependencies.UploadHandler, dependencies.AuthMiddleware.RequireAuth)
 
 	mux.Handle(v1Prefix+"/", http.StripPrefix(v1Prefix, v1Mux))
 

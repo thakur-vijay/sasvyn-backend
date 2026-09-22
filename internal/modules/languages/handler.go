@@ -67,10 +67,10 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if request.LanguageCode == nil && request.Language == nil && request.Proficiency == nil {
-		response.Write(w, http.StatusBadRequest, "at least one field is required")
-		return
-	}
+	// if request.LanguageCode == nil && request.Language == nil && request.Proficiency == nil {
+	// 	response.Write(w, http.StatusBadRequest, "at least one field is required")
+	// 	return
+	// }
 
 	if err := h.repository.Update(
 		r.Context(),

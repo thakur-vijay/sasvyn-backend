@@ -10,11 +10,13 @@ import (
 	"github.com/sasvyn/backend/internal/modules/languages"
 	"github.com/sasvyn/backend/internal/modules/sessions"
 	"github.com/sasvyn/backend/internal/modules/skills"
+	"github.com/sasvyn/backend/internal/modules/upload"
 	"github.com/sasvyn/backend/internal/modules/users"
 	"github.com/sasvyn/backend/internal/ratelimit"
 )
 
 func BuildRouter(db *sql.DB, limiters *RateLimiters, r2Client *s3.Client) http.Handler {
+	presignClient := s3.NewPresignClient(r2Client)
 	sessionRepository := sessions.NewRepository(db)
 	sessionService := sessions.NewService(sessionRepository)
 
@@ -25,16 +27,18 @@ func BuildRouter(db *sql.DB, limiters *RateLimiters, r2Client *s3.Client) http.H
 	authService := auth.NewService(userRepository, sessionService)
 	authHandler := auth.NewHandler(authService, sessionService)
 	authMiddleWare := auth.NewMiddleware(sessionService)
-	userHandler := users.NewHandler(userRepository)
+	userHandler := users.NewHandler(userRepository, presignClient)
 	skillsHandler := skills.NewHandler(skillRepository)
-	languagesHander := languages.NewHandler(languagesRepository)
+	languagesHandler := languages.NewHandler(languagesRepository)
+	uploadHandler := upload.NewHandler(r2Client, presignClient)
 
 	router := api.NewRouter(api.Dependencies{
 		AuthHandler:      authHandler,
 		AuthMiddleware:   authMiddleWare,
 		UserHandler:      userHandler,
 		SkillsHandler:    skillsHandler,
-		LanguagesHandler: languagesHander,
+		LanguagesHandler: languagesHandler,
+		UploadHandler:    uploadHandler,
 	})
 
 	return ratelimit.PolicyMiddleware(

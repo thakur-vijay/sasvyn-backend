@@ -5,17 +5,22 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/sasvyn/backend/internal/response"
-	"github.com/sasvyn/backend/internal/validation"
 )
 
 type Handler struct {
-	repository *Repository
+	repository    *Repository
+	PresignClient *s3.PresignClient
 }
 
-func NewHandler(repository *Repository) *Handler {
+func NewHandler(
+	repository *Repository,
+	presignClient *s3.PresignClient,
+) *Handler {
 	return &Handler{
-		repository: repository,
+		repository:    repository,
+		PresignClient: presignClient,
 	}
 }
 
@@ -41,17 +46,8 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 	var request UpdateUserDTO
 
-	if err := response.DecodeJSON(r, &request); err != nil {
-		response.Write(w, http.StatusBadRequest, "request body is invalid")
-		return
-	}
-
-	if request.DateOfBirth != nil && !validation.IsISODate(*request.DateOfBirth) {
-		response.Write(
-			w,
-			http.StatusBadRequest,
-			"date_of_birth must be a valid date in YYYY-MM-DD format",
-		)
+	if err := response.DecodeJSONAndValidate(r, &request); err != nil {
+		response.Write(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
