@@ -18,7 +18,7 @@ func buildMessage(dto any, err error) error {
 
 	t := reflect.TypeOf(dto)
 
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 
@@ -27,8 +27,12 @@ func buildMessage(dto any, err error) error {
 		return fmt.Errorf("validation failed")
 	}
 
-	jsonName := strings.Split(field.Tag.Get("json"), ",")[0]
-	fieldType := field.Type.String()
+	jsonName, _, _ := strings.Cut(field.Tag.Get("json"), ",")
+	fieldType := field.Type
+
+	if fieldType.Kind() == reflect.Pointer {
+		fieldType = fieldType.Elem()
+	}
 
 	if jsonName == "" {
 		jsonName = fieldError.Field()
@@ -39,14 +43,20 @@ func buildMessage(dto any, err error) error {
 		return fmt.Errorf(
 			"%s of type %s is required",
 			jsonName,
-			fieldType,
+			fieldType.String(),
+		)
+	case "notblank":
+		return fmt.Errorf(
+			"%s of type %s must not be blank",
+			jsonName,
+			fieldType.String(),
 		)
 
 	case "min":
 		return fmt.Errorf(
 			"%s of type %s must be at least %s",
 			jsonName,
-			fieldType,
+			fieldType.String(),
 			fieldError.Param(),
 		)
 
@@ -54,7 +64,7 @@ func buildMessage(dto any, err error) error {
 		return fmt.Errorf(
 			"%s of type %s must be at most %s",
 			jsonName,
-			fieldType,
+			fieldType.String(),
 			fieldError.Param(),
 		)
 

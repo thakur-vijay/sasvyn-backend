@@ -25,7 +25,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	var request CreateSkillDTO
 
 	if err := response.DecodeJSON(r, &request); err != nil {
-		response.WriteError(w, http.StatusBadRequest, err.Error())
+		response.Write(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	userID, _ := auth.UserID(r.Context())
@@ -39,22 +39,22 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		UpdatedAt: now,
 	}
 	if err := h.repository.Create(r.Context(), skill); err != nil {
-		response.WriteError(w, http.StatusInternalServerError, "failed to create skill")
+		response.Write(w, http.StatusInternalServerError, "failed to create skill")
 		return
 	}
 
-	response.Write(w, http.StatusCreated, "Skill added successfully", skill)
+	response.WriteItem(w, http.StatusCreated, "Skill added successfully", skill)
 }
 
 func (h *Handler) Fetch(w http.ResponseWriter, r *http.Request) {
 	userID, _ := auth.UserID(r.Context())
 	skills, err := h.repository.Fetch(r.Context(), userID)
 	if err != nil {
-		response.WriteError(w, http.StatusInternalServerError, "failed to fetch skills")
+		response.Write(w, http.StatusInternalServerError, "failed to fetch skills")
 		return
 	}
 
-	response.Write(w, http.StatusOK, "Skill fetched successfully", skills)
+	response.WriteList(w, http.StatusOK, "Skill fetched successfully", skills)
 }
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
@@ -64,7 +64,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	var request UpdateSkillDTO
 
 	if err := response.DecodeJSON(r, &request); err != nil {
-		response.WriteError(w, http.StatusBadRequest, err.Error())
+		response.Write(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -78,22 +78,22 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.repository.Update(r.Context(), skill); err != nil {
 		if err == sql.ErrNoRows {
-			response.WriteError(w, http.StatusNotFound, "skill was not found")
+			response.Write(w, http.StatusNotFound, "skill was not found")
 			return
 		}
 
 		if strings.Contains(err.Error(), "23505") {
 
-			response.WriteError(w, http.StatusConflict, "skill already exists")
+			response.Write(w, http.StatusConflict, "skill already exists")
 			return
 		}
 
 		log.Printf("Update skill error: %v", err)
-		response.WriteError(w, http.StatusInternalServerError, "skill could not be updated")
+		response.Write(w, http.StatusInternalServerError, "skill could not be updated")
 		return
 	}
 
-	response.Write(w, http.StatusOK, "skill updated successfully", skill)
+	response.WriteItem(w, http.StatusOK, "skill updated successfully", skill)
 }
 
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
@@ -102,14 +102,14 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.repository.Delete(r.Context(), skillID, userID); err != nil {
 		if err == sql.ErrNoRows {
-			response.WriteError(w, http.StatusNotFound, "skill was not found")
+			response.Write(w, http.StatusNotFound, "skill was not found")
 			return
 		}
 
 		log.Printf("Update skill error: %v", err)
-		response.WriteError(w, http.StatusInternalServerError, "skill could not be deleted")
+		response.Write(w, http.StatusInternalServerError, "skill could not be deleted")
 		return
 	}
 
-	response.Write(w, http.StatusOK, "skill deleted successfully", nil)
+	response.Write(w, http.StatusOK, "skill deleted successfully")
 }

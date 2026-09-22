@@ -24,7 +24,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 
 	var request CreateLanguageDTO
 	if err := response.DecodeJSONAndValidate(r, &request); err != nil {
-		response.WriteError(w, http.StatusBadRequest, err.Error())
+		response.Write(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	userID, _ := auth.UserID(r.Context())
@@ -39,22 +39,22 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		UpdatedAt:    now,
 	}
 	if err := h.repository.Create(r.Context(), language); err != nil {
-		response.WriteError(w, http.StatusInternalServerError, "failed to create language")
+		response.Write(w, http.StatusInternalServerError, "failed to create language")
 		return
 	}
 
-	response.Write(w, http.StatusCreated, "Language added successfully", language)
+	response.WriteItem(w, http.StatusCreated, "Language added successfully", language)
 }
 
 func (h *Handler) Fetch(w http.ResponseWriter, r *http.Request) {
 	userID, _ := auth.UserID(r.Context())
 	languages, err := h.repository.Fetch(r.Context(), userID)
 	if err != nil {
-		response.WriteError(w, http.StatusInternalServerError, "failed to fetch languages")
+		response.Write(w, http.StatusInternalServerError, "failed to fetch languages")
 		return
 	}
 
-	response.Write(w, http.StatusOK, "Languages fetched successfully", languages)
+	response.WriteList(w, http.StatusOK, "Languages fetched successfully", languages)
 }
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
@@ -63,12 +63,12 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 	var request UpdateLanguageDTO
 	if err := response.DecodeJSONAndValidate(r, &request); err != nil {
-		response.WriteError(w, http.StatusBadRequest, err.Error())
+		response.Write(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if request.LanguageCode == nil && request.Language == nil && request.Proficiency == nil {
-		response.WriteError(w, http.StatusBadRequest, "at least one field is required")
+		response.Write(w, http.StatusBadRequest, "at least one field is required")
 		return
 	}
 
@@ -79,21 +79,21 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		request,
 	); err != nil {
 		if err == sql.ErrNoRows {
-			response.WriteError(w, http.StatusNotFound, "language was not found")
+			response.Write(w, http.StatusNotFound, "language was not found")
 			return
 		}
 
 		if strings.Contains(err.Error(), "23505") {
-			response.WriteError(w, http.StatusConflict, "language already exists")
+			response.Write(w, http.StatusConflict, "language already exists")
 			return
 		}
 
 		log.Printf("Update language error: %v", err)
-		response.WriteError(w, http.StatusInternalServerError, "language could not be updated")
+		response.Write(w, http.StatusInternalServerError, "language could not be updated")
 		return
 	}
 
-	response.Write(w, http.StatusOK, "language updated successfully", nil)
+	response.Write(w, http.StatusOK, "language updated successfully")
 }
 
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
@@ -102,14 +102,14 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.repository.Delete(r.Context(), languageID, userID); err != nil {
 		if err == sql.ErrNoRows {
-			response.WriteError(w, http.StatusNotFound, "language was not found")
+			response.Write(w, http.StatusNotFound, "language was not found")
 			return
 		}
 
 		log.Printf("Update language error: %v", err)
-		response.WriteError(w, http.StatusInternalServerError, "language could not be deleted")
+		response.Write(w, http.StatusInternalServerError, "language could not be deleted")
 		return
 	}
 
-	response.Write(w, http.StatusOK, "language deleted successfully", nil)
+	response.Write(w, http.StatusOK, "language deleted successfully")
 }

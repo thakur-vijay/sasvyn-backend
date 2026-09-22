@@ -1,10 +1,27 @@
 package validation
 
 import (
+	"reflect"
+	"strings"
+
 	"github.com/go-playground/validator/v10"
 )
 
 var validate = validator.New()
+
+func init() {
+	validate.RegisterValidation("notblank", func(fl validator.FieldLevel) bool {
+		if fl.Field().Kind() == reflect.Pointer {
+			if fl.Field().IsNil() {
+				return true
+			}
+
+			return strings.TrimSpace(fl.Field().Elem().String()) != ""
+		}
+
+		return strings.TrimSpace(fl.Field().String()) != ""
+	})
+}
 
 func Validator(dto any) error {
 	err := validate.Struct(dto)

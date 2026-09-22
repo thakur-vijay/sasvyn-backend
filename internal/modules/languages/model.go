@@ -19,7 +19,7 @@ type CreateLanguageDTO struct {
 }
 
 type UpdateLanguageDTO struct {
-	LanguageCode *string `json:"language_code" validate:"omitempty"`
-	Language     *string `json:"language" validate:"omitempty"`
+	LanguageCode *string `json:"language_code" validate:"omitempty,notblank"`
+	Language     *string `json:"language" validate:"omitempty,notblank"`
 	Proficiency  *int16  `json:"proficiency" validate:"omitempty,min=1,max=5"`
 }

@@ -29,19 +29,19 @@ func (m *Middleware) RequireAuth(next http.Handler) http.Handler {
 		header := r.Header.Get("Authorization")
 
 		if header == "" {
-			response.WriteError(w, http.StatusUnauthorized, "authorization header is required")
+			response.Write(w, http.StatusUnauthorized, "authorization header is required")
 			return
 		}
 
 		parts := strings.SplitN(header, " ", 2)
 		if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
-			response.WriteError(w, http.StatusUnauthorized, "authorization header is invalid")
+			response.Write(w, http.StatusUnauthorized, "authorization header is invalid")
 			return
 		}
 
 		session, err := m.sessionService.ValidateAccessToken(r.Context(), parts[1])
 		if err != nil {
-			response.WriteError(w, http.StatusUnauthorized, "authentication failed")
+			response.Write(w, http.StatusUnauthorized, "authentication failed")
 			return
 		}
 

@@ -32,14 +32,14 @@ func (h *Handler) SocialLogin(w http.ResponseWriter, r *http.Request) {
 	var request SocialLoginRequest
 
 	if err := response.DecodeJSON(r, &request); err != nil {
-		response.WriteError(w, http.StatusBadRequest, err.Error())
+		response.Write(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	user, accessToken, refreshToken, err := h.service.SocialLogin(r.Context(), request)
 	if err != nil {
 		log.Printf("Social login error: %v", err)
-		response.WriteError(w, http.StatusInternalServerError, "login could not be completed")
+		response.Write(w, http.StatusInternalServerError, "login could not be completed")
 		return
 	}
 
@@ -48,14 +48,14 @@ func (h *Handler) SocialLogin(w http.ResponseWriter, r *http.Request) {
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}
-	response.Write(w, http.StatusOK, "login successful", payload)
+	response.WriteItem(w, http.StatusOK, "login successful", payload)
 }
 
 func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 	var request RefreshRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		response.WriteError(w, http.StatusBadRequest, "request body is invalid")
+		response.Write(w, http.StatusBadRequest, "request body is invalid")
 		return
 	}
 
@@ -64,7 +64,7 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 		request.RefreshToken,
 	)
 	if err != nil {
-		response.WriteError(w, http.StatusUnauthorized, "refresh token is invalid")
+		response.Write(w, http.StatusUnauthorized, "refresh token is invalid")
 		return
 	}
 
@@ -73,23 +73,23 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 		RefreshToken: refreshToken,
 	}
 
-	response.Write(w, http.StatusOK, "token refreshed successfully", payload)
+	response.WriteItem(w, http.StatusOK, "token refreshed successfully", payload)
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	sessionID, ok := SessionID(r.Context())
 	if !ok {
-		response.WriteError(w, http.StatusUnauthorized, "authentication required")
+		response.Write(w, http.StatusUnauthorized, "authentication required")
 		return
 	}
 
 	if err := h.sessionService.Logout(r.Context(), sessionID); err != nil {
 		log.Printf("Logout error: %v", err)
-		response.WriteError(w, http.StatusInternalServerError, "logout failed")
+		response.Write(w, http.StatusInternalServerError, "logout failed")
 		return
 	}
 
-	response.Write(w, http.StatusOK, "logout successful", nil)
+	response.Write(w, http.StatusOK, "logout successful")
 }
 
 // func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {

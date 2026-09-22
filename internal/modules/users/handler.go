@@ -25,16 +25,15 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 	user, err := h.repository.GetByID(r.Context(), userID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			response.WriteError(w, http.StatusNotFound, "user was not found")
+			response.Write(w, http.StatusNotFound, "user was not found")
 			return
 		}
 
 		log.Printf("GetByID error: %v", err)
-		response.WriteError(w, http.StatusInternalServerError, "user could not be retrieved")
+		response.Write(w, http.StatusInternalServerError, "user could not be retrieved")
 		return
 	}
-
-	response.Write(w, http.StatusOK, "user retrieved successfully", user)
+	response.WriteItem(w, http.StatusOK, "user retrieved successfully", user)
 }
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
@@ -43,12 +42,12 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	var request UpdateUserDTO
 
 	if err := response.DecodeJSON(r, &request); err != nil {
-		response.WriteError(w, http.StatusBadRequest, "request body is invalid")
+		response.Write(w, http.StatusBadRequest, "request body is invalid")
 		return
 	}
 
 	if request.DateOfBirth != nil && !validation.IsISODate(*request.DateOfBirth) {
-		response.WriteError(
+		response.Write(
 			w,
 			http.StatusBadRequest,
 			"date_of_birth must be a valid date in YYYY-MM-DD format",
@@ -59,14 +58,14 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	user, err := h.repository.Update(r.Context(), userID, request)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			response.WriteError(w, http.StatusNotFound, "user was not found")
+			response.Write(w, http.StatusNotFound, "user was not found")
 			return
 		}
 
 		log.Printf("Update error: %v", err)
-		response.WriteError(w, http.StatusInternalServerError, "user could not be updated")
+		response.Write(w, http.StatusInternalServerError, "user could not be updated")
 		return
 	}
 
-	response.Write(w, http.StatusOK, "user updated successfully", user)
+	response.WriteItem(w, http.StatusOK, "user updated successfully", user)
 }
