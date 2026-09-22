@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"net/http"
 
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/sasvyn/backend/internal/api"
 	"github.com/sasvyn/backend/internal/modules/auth"
 	"github.com/sasvyn/backend/internal/modules/languages"
@@ -13,7 +14,7 @@ import (
 	"github.com/sasvyn/backend/internal/ratelimit"
 )
 
-func BuildRouter(db *sql.DB, limiters *RateLimiters) http.Handler {
+func BuildRouter(db *sql.DB, limiters *RateLimiters, r2Client *s3.Client) http.Handler {
 	sessionRepository := sessions.NewRepository(db)
 	sessionService := sessions.NewService(sessionRepository)
 

@@ -39,7 +39,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		UpdatedAt:    now,
 	}
 	if err := h.repository.Create(r.Context(), language); err != nil {
-		response.Write(w, http.StatusInternalServerError, "failed to create language")
+		response.Write(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 

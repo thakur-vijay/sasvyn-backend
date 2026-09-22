@@ -5,14 +5,17 @@ import (
 	"database/sql"
 	"net/http"
 
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/sasvyn/backend/internal/config"
 	"github.com/sasvyn/backend/internal/database"
+	"github.com/sasvyn/backend/internal/storage"
 )
 
 type App struct {
 	DB       *sql.DB
 	Router   http.Handler
 	Limiters *RateLimiters
+	R2Client *s3.Client
 }
 
 func New(cfg *config.Config) (*App, error) {
@@ -35,13 +38,14 @@ func New(cfg *config.Config) (*App, error) {
 		db.Close()
 		return nil, err
 	}
-
-	router := BuildRouter(db, limiters)
+	r2Client := storage.NewR2Client()
+	router := BuildRouter(db, limiters, r2Client)
 
 	return &App{
 		DB:       db,
 		Router:   router,
 		Limiters: limiters,
+		R2Client: r2Client,
 	}, nil
 }
 
