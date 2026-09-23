@@ -28,7 +28,7 @@ func (r *Repository) GetByAppleID(ctx context.Context, appleID string) (*User, e
 	var user User
 
 	err := r.db.QueryRowContext(ctx, `
-		SELECT id, apple_id, full_name, email, date_of_birth, img_key, created_at, updated_at
+		SELECT id, apple_id, full_name, email, date_of_birth, img_key, sync_version, created_at, updated_at
 		FROM users
 		WHERE apple_id = $1
 	`, appleID).Scan(
@@ -38,6 +38,7 @@ func (r *Repository) GetByAppleID(ctx context.Context, appleID string) (*User, e
 		&user.Email,
 		&user.DateOfBirth,
 		&user.ImageKey,
+		&user.SyncVersion,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -62,15 +63,24 @@ func (r *Repository) Create(ctx context.Context, user User) error {
 	}()
 
 	_, err := r.db.ExecContext(ctx, `
-		INSERT INTO users (id, apple_id, full_name, email, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
-	`,
+        INSERT INTO users (
+            id,
+            apple_id,
+            full_name,
+            email,
+            created_at,
+            updated_at,
+            sync_version
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `,
 		user.ID,
 		user.AppleID,
 		user.FullName,
 		user.Email,
-		user.CreatedAt,
-		user.UpdatedAt,
+		user.CreatedAt.UTC(),
+		user.UpdatedAt.UTC(),
+		int64(1),
 	)
 
 	return err
@@ -143,13 +153,16 @@ func (r *Repository) Update(
 	args = append(args, time.Now().UTC())
 	arg++
 
+	set = append(set, "sync_version = sync_version + 1")
+
 	args = append(args, id)
 
 	query := fmt.Sprintf(
 		`UPDATE users
-		 SET %s
-		 WHERE id = $%d
-		 RETURNING id, apple_id, full_name, email, date_of_birth, img_key, created_at, updated_at`,
+         SET %s
+         WHERE id = $%d
+         RETURNING id, apple_id, full_name, email, date_of_birth,
+                   img_key, created_at, updated_at, sync_version`,
 		strings.Join(set, ", "),
 		arg,
 	)
@@ -165,8 +178,8 @@ func (r *Repository) Update(
 		&user.ImageKey,
 		&user.CreatedAt,
 		&user.UpdatedAt,
+		&user.SyncVersion,
 	)
-
 	if err != nil {
 		return nil, err
 	}

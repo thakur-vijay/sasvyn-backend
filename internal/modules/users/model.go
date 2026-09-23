@@ -10,6 +10,7 @@ type User struct {
 	DateOfBirth *string   `json:"date_of_birth"`
 	ImageUrl    *string   `json:"img_url"`
 	ImageKey    *string   `json:"-"`
+	SyncVersion *int64    `json:"sync_version"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
