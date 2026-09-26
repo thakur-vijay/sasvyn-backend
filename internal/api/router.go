@@ -6,6 +6,7 @@ import (
 	"github.com/sasvyn/backend/internal/modules/auth"
 	"github.com/sasvyn/backend/internal/modules/languages"
 	"github.com/sasvyn/backend/internal/modules/skills"
+	sociallinks "github.com/sasvyn/backend/internal/modules/socialLinks"
 	"github.com/sasvyn/backend/internal/modules/upload"
 	"github.com/sasvyn/backend/internal/modules/users"
 )
@@ -13,12 +14,13 @@ import (
 const v1Prefix = "/api/v1"
 
 type Dependencies struct {
-	AuthHandler      *auth.Handler
-	AuthMiddleware   *auth.Middleware
-	UserHandler      *users.Handler
-	SkillsHandler    *skills.Handler
-	LanguagesHandler *languages.Handler
-	UploadHandler    *upload.Handler
+	AuthHandler       *auth.Handler
+	AuthMiddleware    *auth.Middleware
+	UserHandler       *users.Handler
+	SkillsHandler     *skills.Handler
+	LanguagesHandler  *languages.Handler
+	UploadHandler     *upload.Handler
+	SocialLinkHandler *sociallinks.Handler
 }
 
 func NewRouter(dependencies Dependencies) http.Handler {
@@ -31,6 +33,7 @@ func NewRouter(dependencies Dependencies) http.Handler {
 	skills.RegisterRoutes(v1Mux, dependencies.SkillsHandler, dependencies.AuthMiddleware.RequireAuth)
 	languages.RegisterRoutes(v1Mux, dependencies.LanguagesHandler, dependencies.AuthMiddleware.RequireAuth)
 	upload.RegisterRoutes(v1Mux, dependencies.UploadHandler, dependencies.AuthMiddleware.RequireAuth)
+	sociallinks.RegisterRoutes(v1Mux, dependencies.SocialLinkHandler, dependencies.AuthMiddleware.RequireAuth)
 
 	mux.Handle(v1Prefix+"/", http.StripPrefix(v1Prefix, v1Mux))
 
