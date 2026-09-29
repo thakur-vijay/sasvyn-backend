@@ -67,7 +67,12 @@ func buildMessage(dto any, err error) error {
 			fieldType.String(),
 			fieldError.Param(),
 		)
-
+	case "oneof":
+		return fmt.Errorf(
+			"%s must be one of: %s",
+			jsonName,
+			strings.ReplaceAll(fieldError.Param(), " ", ", "),
+		)
 	default:
 		return fmt.Errorf("%s is invalid", jsonName)
 	}
