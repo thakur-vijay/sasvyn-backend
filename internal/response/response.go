@@ -29,6 +29,10 @@ func WriteList[T any](
 	message string,
 	data []T,
 ) {
+	if data == nil {
+		data = []T{}
+	}
+
 	write(w, statusCode, message, data)
 }
 
