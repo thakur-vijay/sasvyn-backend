@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-	"uuid"
 
 	"github.com/sasvyn/backend/internal/modules/auth"
 	"github.com/sasvyn/backend/internal/response"
@@ -30,7 +29,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	userID, _ := auth.UserID(r.Context())
 	now := time.Now().UTC()
 	link := SocialLink{
-		ID:        uuid.New().String(),
+		ID:        request.ID,
 		UserID:    userID,
 		Type:      request.Type,
 		Url:       request.Url,
