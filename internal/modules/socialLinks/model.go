@@ -27,7 +27,7 @@ type SocialLink struct {
 }
 
 type CreateSocialLinkDTO struct {
-	ID   string   `json:"id" validate:"required,uuid4"`
+	ID   string   `json:"id" validate:"required,valid_uuid4"`
 	Type LinkType `json:"type" validate:"required,oneof=github linkedin x instagram youtube dribbble behance medium website"`
 	Url  string   `json:"url" validate:"required,url"`
 }

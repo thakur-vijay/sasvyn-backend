@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/google/uuid"
+
 	"github.com/go-playground/validator/v10"
 )
 
@@ -20,6 +22,15 @@ func init() {
 		}
 
 		return strings.TrimSpace(fl.Field().String()) != ""
+	})
+
+	validate.RegisterValidation("valid_uuid4", func(fl validator.FieldLevel) bool {
+		id, err := uuid.Parse(fl.Field().String())
+		if err != nil {
+			return false
+		}
+
+		return id.Version() == 4
 	})
 }
 
