@@ -1,6 +1,26 @@
 package idempotency
 
-import "context"
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"time"
+	"uuid"
+
+	"github.com/sasvyn/backend/internal/response"
+)
+
+type Result struct {
+	StatusCode int
+	Message    string
+	Data       any
+	Body       []byte
+}
+
+var ErrAlreadyProcessing = errors.New(
+
+	"request with this Idempotency-Key is already being processed",
+)
 
 type Service struct {
 	repository *Repository
@@ -30,7 +50,7 @@ func (s *Service) Save(
 func (s *Service) Reserve(
 	ctx context.Context,
 	record IdempotencyRecord,
-) (*IdempotencyRecord, error) {
+) (*IdempotencyRecord, bool, error) {
 	return s.repository.Reserve(ctx, record)
 }
 
@@ -56,4 +76,71 @@ func (s *Service) Delete(
 	key string,
 ) error {
 	return s.repository.Delete(ctx, userID, key)
+}
+
+func (s *Service) Execute(
+	ctx context.Context,
+	userID string,
+	key string,
+	operation func() (Result, error),
+) (Result, error) {
+	record := IdempotencyRecord{
+		ID:             uuid.New().String(),
+		UserID:         userID,
+		IdempotencyKey: key,
+		CreatedAt:      time.Now().UTC(),
+	}
+
+	reserved, ownsReservation, err := s.Reserve(ctx, record)
+	if err != nil {
+		return Result{}, err
+	}
+
+	if reserved.Status == "completed" {
+		return Result{
+			StatusCode: *reserved.StatusCode,
+			Body:       reserved.ResponseBody,
+		}, nil
+	}
+
+	if !ownsReservation {
+		return Result{}, ErrAlreadyProcessing
+	}
+
+	if reserved.Status == "processing" {
+		return Result{}, ErrAlreadyProcessing
+	}
+
+	time.Sleep(3 * time.Second)
+	result, err := operation()
+	if err != nil {
+		_ = s.Delete(ctx, userID, key)
+		return Result{}, err
+	}
+
+	responseBody, err := json.Marshal(
+		response.Response{
+			StatusCode: result.StatusCode,
+			Message:    result.Message,
+			Data:       result.Data,
+		},
+	)
+	if err != nil {
+		_ = s.Delete(ctx, userID, key)
+		return Result{}, err
+	}
+
+	if err := s.Complete(
+		ctx,
+		userID,
+		key,
+		result.StatusCode,
+		responseBody,
+	); err != nil {
+		return Result{}, err
+	}
+
+	result.Body = responseBody
+
+	return result, nil
 }

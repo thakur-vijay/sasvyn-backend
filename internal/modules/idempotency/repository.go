@@ -92,8 +92,8 @@ func (r *Repository) Save(
 func (r *Repository) Reserve(
 	ctx context.Context,
 	record IdempotencyRecord,
-) (*IdempotencyRecord, error) {
-	_, err := r.db.ExecContext(
+) (*IdempotencyRecord, bool, error) {
+	result, err := r.db.ExecContext(
 		ctx,
 		`
 		INSERT INTO idempotency_keys (
@@ -113,10 +113,30 @@ func (r *Repository) Reserve(
 	)
 
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
-	return r.Find(ctx, record.UserID, record.IdempotencyKey)
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return nil, false, err
+	}
+
+	// This request created the reservation.
+	if rows == 1 {
+		return &record, true, nil
+	}
+
+	// Another request already owns the reservation.
+	existing, err := r.Find(
+		ctx,
+		record.UserID,
+		record.IdempotencyKey,
+	)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return existing, false, nil
 }
 
 func (r *Repository) Complete(
