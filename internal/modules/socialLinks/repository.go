@@ -109,6 +109,53 @@ func (r *Repository) Fetch(ctx context.Context, userID string) ([]SocialLink, er
 	return socialLinks, nil
 }
 
+func (r *Repository) FetchByID(ctx context.Context, id, userID string) (SocialLink, error) {
+	start := time.Now()
+	defer func() {
+		log.Printf("[DB] FetchSocialLinkByID: %v", time.Since(start))
+	}()
+
+	var link SocialLink
+
+	err := r.db.QueryRowContext(
+		ctx,
+		`SELECT
+			id,
+			user_id,
+			type,
+			url,
+			sync_version,
+			created_at,
+			updated_at
+		FROM social_links
+		WHERE id = $1
+		  AND user_id = $2`,
+		id,
+		userID,
+	).Scan(
+		&link.ID,
+		&link.UserID,
+		&link.Type,
+		&link.Url,
+		&link.SyncVersion,
+		&link.CreatedAt,
+		&link.UpdatedAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return SocialLink{}, sql.ErrNoRows
+		}
+
+		return SocialLink{}, err
+	}
+
+	link.CreatedAt = link.CreatedAt.UTC()
+	link.UpdatedAt = link.UpdatedAt.UTC()
+
+	return link, nil
+}
+
 func (r *Repository) Update(
 	ctx context.Context,
 	id string,

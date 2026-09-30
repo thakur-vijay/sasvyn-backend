@@ -93,6 +93,34 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	response.WriteItem(w, http.StatusOK, "social link updated successfully", updatedLink)
 }
 
+func (h *Handler) FetchByID(w http.ResponseWriter, r *http.Request) {
+	socialLinkID := r.PathValue("id")
+	userID, _ := auth.UserID(r.Context())
+
+	socialLink, err := h.repository.FetchByID(
+		r.Context(),
+		socialLinkID,
+		userID,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			response.Write(w, http.StatusNotFound, "social link was not found")
+			return
+		}
+
+		log.Printf("Fetch social link error: %v", err)
+		response.Write(w, http.StatusInternalServerError, "failed to fetch social link")
+		return
+	}
+
+	response.WriteItem(
+		w,
+		http.StatusOK,
+		"Social Link fetched successfully",
+		socialLink,
+	)
+}
+
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	socialLinkId := r.PathValue("id")
 	userID, _ := auth.UserID(r.Context())

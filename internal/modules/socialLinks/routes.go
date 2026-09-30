@@ -24,6 +24,11 @@ func RegisterRoutes(
 	)
 
 	mux.Handle(
+		"GET /socialLinks/{id}",
+		requireAuth(http.HandlerFunc(handler.FetchByID)),
+	)
+
+	mux.Handle(
 		"DELETE /socialLinks/{id}",
 		requireAuth(http.HandlerFunc(handler.Delete)),
 	)
