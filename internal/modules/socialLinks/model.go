@@ -17,12 +17,13 @@ const (
 )
 
 type SocialLink struct {
-	ID        string    `json:"id"`
-	UserID    string    `json:"user_id"`
-	Type      LinkType  `json:"type"`
-	Url       string    `json:"url"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID          string    `json:"id"`
+	UserID      string    `json:"user_id"`
+	Type        LinkType  `json:"type"`
+	Url         string    `json:"url"`
+	SyncVersion *int64    `json:"sync_version"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type CreateSocialLinkDTO struct {

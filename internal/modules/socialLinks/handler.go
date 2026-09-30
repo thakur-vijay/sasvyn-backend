@@ -37,12 +37,14 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
-	if err := h.repository.Create(r.Context(), link); err != nil {
+
+	createdLink, err := h.repository.Create(r.Context(), link)
+	if err != nil {
 		response.Write(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	response.WriteItem(w, http.StatusCreated, "Social Link added successfully", link)
+	response.WriteItem(w, http.StatusCreated, "Social Link added successfully", createdLink)
 }
 
 func (h *Handler) Fetch(w http.ResponseWriter, r *http.Request) {
@@ -66,12 +68,13 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.repository.Update(
+	updatedLink, err := h.repository.Update(
 		r.Context(),
 		socialLinkId,
 		userID,
 		request,
-	); err != nil {
+	)
+	if err != nil {
 		if err == sql.ErrNoRows {
 			response.Write(w, http.StatusNotFound, "social link was not found")
 			return
@@ -87,7 +90,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.Write(w, http.StatusOK, "social link updated successfully")
+	response.WriteItem(w, http.StatusOK, "social link updated successfully", updatedLink)
 }
 
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {

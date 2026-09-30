@@ -3,6 +3,7 @@ package sociallinks
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -17,13 +18,59 @@ func NewRepository(db *sql.DB) *Repository {
 	return &Repository{db: db}
 }
 
-func (r *Repository) Create(ctx context.Context, link SocialLink) error {
+func (r *Repository) Create(ctx context.Context, link SocialLink) (SocialLink, error) {
 	start := time.Now()
 	defer func() {
 		log.Printf("[DB] CreateSocialLink: %v", time.Since(start))
 	}()
-	_, err := r.db.ExecContext(ctx, `INSERT INTO social_links (id, user_id, type, url, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)`, link.ID, link.UserID, link.Type, link.Url, link.CreatedAt, link.UpdatedAt)
-	return err
+
+	var createdLink SocialLink
+
+	err := r.db.QueryRowContext(
+		ctx,
+		`INSERT INTO social_links (
+			id,
+			user_id,
+			type,
+			url,
+			sync_version,
+			created_at,
+			updated_at
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING
+			id,
+			user_id,
+			type,
+			url,
+			sync_version,
+			created_at,
+			updated_at`,
+		link.ID,
+		link.UserID,
+		link.Type,
+		link.Url,
+		int64(1),
+		link.CreatedAt,
+		link.UpdatedAt,
+	).Scan(
+		&createdLink.ID,
+		&createdLink.UserID,
+		&createdLink.Type,
+		&createdLink.Url,
+		&createdLink.SyncVersion,
+		&createdLink.CreatedAt,
+		&createdLink.UpdatedAt,
+	)
+
+	if err != nil {
+		return SocialLink{}, err
+	}
+
+	createdLink.CreatedAt = createdLink.CreatedAt.UTC()
+	createdLink.UpdatedAt = createdLink.UpdatedAt.UTC()
+
+	return createdLink, nil
 }
 
 func (r *Repository) Fetch(ctx context.Context, userID string) ([]SocialLink, error) {
@@ -32,7 +79,7 @@ func (r *Repository) Fetch(ctx context.Context, userID string) ([]SocialLink, er
 		log.Printf("[DB] FetchSocialLinks: %v", time.Since(start))
 	}()
 
-	rows, err := r.db.QueryContext(ctx, `SELECT id, user_id, type, url, created_at, updated_at FROM social_links WHERE user_id = $1`, userID)
+	rows, err := r.db.QueryContext(ctx, `SELECT id, user_id, type, url, sync_version, created_at, updated_at FROM social_links WHERE user_id = $1`, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -45,6 +92,7 @@ func (r *Repository) Fetch(ctx context.Context, userID string) ([]SocialLink, er
 			&link.UserID,
 			&link.Type,
 			&link.Url,
+			&link.SyncVersion,
 			&link.CreatedAt,
 			&link.UpdatedAt,
 		); err != nil {
@@ -66,7 +114,7 @@ func (r *Repository) Update(
 	id string,
 	userID string,
 	request UpdateSocialLinkDTO,
-) error {
+) (SocialLink, error) {
 	start := time.Now()
 	defer func() {
 		log.Printf("[DB] UpdateSocialLink: %v", time.Since(start))
@@ -92,27 +140,51 @@ func (r *Repository) Update(
 	args = append(args, time.Now().UTC())
 	arg++
 
+	set = append(set, "sync_version = sync_version + 1")
+
 	args = append(args, id, userID)
 
 	query := fmt.Sprintf(
 		`UPDATE social_links
 		 SET %s
-		 WHERE id = $%d AND user_id = $%d`,
+		 WHERE id = $%d AND user_id = $%d
+		 RETURNING
+			id,
+			user_id,
+			type,
+			url,
+			sync_version,
+			created_at,
+			updated_at`,
 		strings.Join(set, ", "),
 		arg,
 		arg+1,
 	)
 
-	result, err := r.db.ExecContext(ctx, query, args...)
+	var updatedLink SocialLink
+
+	err := r.db.QueryRowContext(ctx, query, args...).Scan(
+		&updatedLink.ID,
+		&updatedLink.UserID,
+		&updatedLink.Type,
+		&updatedLink.Url,
+		&updatedLink.SyncVersion,
+		&updatedLink.CreatedAt,
+		&updatedLink.UpdatedAt,
+	)
+
 	if err != nil {
-		return err
+		if errors.Is(err, sql.ErrNoRows) {
+			return SocialLink{}, sql.ErrNoRows
+		}
+
+		return SocialLink{}, err
 	}
 
-	if rows, _ := result.RowsAffected(); rows == 0 {
-		return sql.ErrNoRows
-	}
+	updatedLink.CreatedAt = updatedLink.CreatedAt.UTC()
+	updatedLink.UpdatedAt = updatedLink.UpdatedAt.UTC()
 
-	return nil
+	return updatedLink, nil
 }
 
 func (r *Repository) Delete(ctx context.Context, linkID, userID string) error {

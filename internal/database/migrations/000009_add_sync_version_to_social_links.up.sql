@@ -1,0 +1,2 @@
+ALTER TABLE social_links
+ADD COLUMN sync_version BIGINT NOT NULL DEFAULT 1;
