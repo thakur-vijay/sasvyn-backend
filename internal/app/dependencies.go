@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/sasvyn/backend/internal/api"
 	"github.com/sasvyn/backend/internal/modules/auth"
+	"github.com/sasvyn/backend/internal/modules/idempotency"
 	"github.com/sasvyn/backend/internal/modules/languages"
 	"github.com/sasvyn/backend/internal/modules/sessions"
 	"github.com/sasvyn/backend/internal/modules/skills"
@@ -20,6 +21,8 @@ func BuildRouter(db *sql.DB, limiters *RateLimiters, r2Client *s3.Client) http.H
 	presignClient := s3.NewPresignClient(r2Client)
 	sessionRepository := sessions.NewRepository(db)
 	sessionService := sessions.NewService(sessionRepository)
+	idempotencyRepository := idempotency.NewRepository(db)
+	idempotencyService := idempotency.NewService(idempotencyRepository)
 
 	userRepository := users.NewRepository(db)
 	skillRepository := skills.NewRepository(db)
@@ -29,7 +32,7 @@ func BuildRouter(db *sql.DB, limiters *RateLimiters, r2Client *s3.Client) http.H
 	authService := auth.NewService(userRepository, sessionService)
 	authHandler := auth.NewHandler(authService, sessionService)
 	authMiddleWare := auth.NewMiddleware(sessionService)
-	userHandler := users.NewHandler(userRepository, presignClient)
+	userHandler := users.NewHandler(userRepository, presignClient, idempotencyService)
 	skillsHandler := skills.NewHandler(skillRepository)
 	languagesHandler := languages.NewHandler(languagesRepository)
 	uploadHandler := upload.NewHandler(r2Client, presignClient)

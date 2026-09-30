@@ -70,3 +70,14 @@ func write(
 		},
 	)
 }
+
+func WriteRaw(
+	w http.ResponseWriter,
+	statusCode int,
+	body []byte,
+) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+
+	_, _ = w.Write(body)
+}
