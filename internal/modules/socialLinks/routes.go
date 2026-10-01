@@ -2,6 +2,8 @@ package sociallinks
 
 import (
 	"net/http"
+
+	"github.com/sasvyn/backend/internal/modules/idempotency"
 )
 
 func RegisterRoutes(
@@ -15,12 +17,12 @@ func RegisterRoutes(
 	)
 	mux.Handle(
 		"POST /socialLinks",
-		requireAuth(http.HandlerFunc(handler.Create)),
+		requireAuth(idempotency.RequireIdempotencyKey(http.HandlerFunc(handler.Create))),
 	)
 
 	mux.Handle(
 		"PUT /socialLinks/{id}",
-		requireAuth(http.HandlerFunc(handler.Update)),
+		requireAuth(idempotency.RequireIdempotencyKey(http.HandlerFunc(handler.Update))),
 	)
 
 	mux.Handle(
@@ -30,6 +32,6 @@ func RegisterRoutes(
 
 	mux.Handle(
 		"DELETE /socialLinks/{id}",
-		requireAuth(http.HandlerFunc(handler.Delete)),
+		requireAuth(idempotency.RequireIdempotencyKey(http.HandlerFunc(handler.Delete))),
 	)
 }

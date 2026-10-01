@@ -18,7 +18,7 @@ func TestNewRouter_ComposesHealthAndVersionedFeatureRoutes(t *testing.T) {
 	router := NewRouter(Dependencies{
 		AuthHandler:    auth.NewHandler(auth.NewService(userRepository, sessionService), sessionService),
 		AuthMiddleware: authMiddleware,
-		UserHandler:    users.NewHandler(userRepository, nil),
+		UserHandler:    users.NewHandler(userRepository, nil, nil),
 	})
 
 	tests := []struct {
