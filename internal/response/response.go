@@ -1,7 +1,10 @@
 package response
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
+	"log"
 	"net/http"
 )
 
@@ -80,4 +83,26 @@ func WriteRaw(
 	w.WriteHeader(statusCode)
 
 	_, _ = w.Write(body)
+}
+
+func HandleError(
+
+	w http.ResponseWriter,
+	err error,
+	errAlreadyProcessing error,
+	notFoundMessage string,
+	internalMessage string,
+
+) {
+
+	switch {
+	case errors.Is(err, errAlreadyProcessing):
+		Write(w, http.StatusConflict, err.Error())
+	case errors.Is(err, sql.ErrNoRows):
+		Write(w, http.StatusNotFound, notFoundMessage)
+	default:
+		log.Printf("handler error: %v", err)
+		Write(w, http.StatusInternalServerError, internalMessage)
+	}
+
 }
