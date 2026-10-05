@@ -2,6 +2,7 @@ package languages
 
 import (
 	"database/sql"
+	"errors"
 	"log"
 	"net/http"
 	"strings"
@@ -9,41 +10,75 @@ import (
 	"uuid"
 
 	"github.com/sasvyn/backend/internal/modules/auth"
+	"github.com/sasvyn/backend/internal/modules/idempotency"
 	"github.com/sasvyn/backend/internal/response"
 )
 
 type Handler struct {
-	repository *Repository
+	repository         *Repository
+	idempotencyService *idempotency.Service
 }
 
-func NewHandler(repository *Repository) *Handler {
-	return &Handler{repository: repository}
+func NewHandler(repository *Repository, idempotencyService *idempotency.Service) *Handler {
+	return &Handler{repository: repository, idempotencyService: idempotencyService}
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
+	userID, _ := auth.UserID(r.Context())
+	idempotencyKey := r.Header.Get("Idempotency-Key")
 
 	var request CreateLanguageDTO
 	if err := response.DecodeJSONAndValidate(r, &request); err != nil {
 		response.Write(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	userID, _ := auth.UserID(r.Context())
-	now := time.Now().UTC()
-	language := Language{
-		ID:           uuid.New().String(),
-		UserID:       userID,
-		LanguageCode: request.LanguageCode,
-		Language:     request.Language,
-		Proficiency:  request.Proficiency,
-		CreatedAt:    now,
-		UpdatedAt:    now,
-	}
-	if err := h.repository.Create(r.Context(), language); err != nil {
-		response.Write(w, http.StatusInternalServerError, err.Error())
+
+	result, err := h.idempotencyService.Execute(r.Context(), userID, idempotencyKey, func() (idempotency.Result, error) {
+		now := time.Now().UTC()
+		language := Language{
+			ID:           uuid.New().String(),
+			UserID:       userID,
+			LanguageCode: request.LanguageCode,
+			Language:     request.Language,
+			Proficiency:  request.Proficiency,
+			SyncVersion:  1,
+			CreatedAt:    now,
+			UpdatedAt:    now,
+		}
+
+		if err := h.repository.Create(r.Context(), language); err != nil {
+			return idempotency.Result{}, err
+		}
+
+		return idempotency.Result{
+			StatusCode: http.StatusCreated,
+			Message:    "Language added successfully",
+			Data:       language,
+		}, nil
+
+	},
+	)
+
+	if err != nil {
+		if errors.Is(err, idempotency.ErrAlreadyProcessing) {
+			response.Write(w, http.StatusConflict, err.Error())
+			return
+		}
+
+		if errors.Is(err, sql.ErrNoRows) {
+			response.Write(
+				w, http.StatusNotFound,
+				"Language was not found",
+			)
+			return
+		}
+
+		log.Printf("Create language error: %v", err)
+		response.Write(w, http.StatusInternalServerError, "language could not be created")
 		return
 	}
 
-	response.WriteItem(w, http.StatusCreated, "Language added successfully", language)
+	response.WriteRaw(w, result.StatusCode, result.Body)
 }
 
 func (h *Handler) Fetch(w http.ResponseWriter, r *http.Request) {

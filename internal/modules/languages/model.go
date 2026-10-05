@@ -1,15 +1,15 @@
 package languages
 
-import "time"
+import (
+	"github.com/sasvyn/backend/internal/domain/model"
+)
 
 type Language struct {
-	ID           string    `json:"id"`
-	UserID       string    `json:"user_id"`
-	LanguageCode string    `json:"language_code"`
-	Language     string    `json:"language"`
-	Proficiency  int16     `json:"proficiency"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	model.BaseModel
+	UserID       string `json:"user_id"`
+	LanguageCode string `json:"language_code"`
+	Language     string `json:"language"`
+	Proficiency  int16  `json:"proficiency"`
 }
 
 type CreateLanguageDTO struct {

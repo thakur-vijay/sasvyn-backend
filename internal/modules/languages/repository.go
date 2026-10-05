@@ -22,7 +22,7 @@ func (r *Repository) Create(ctx context.Context, language Language) error {
 	defer func() {
 		log.Printf("[DB] CreateLanguage: %v", time.Since(start))
 	}()
-	_, err := r.db.ExecContext(ctx, `INSERT INTO languages (id, user_id, language_code, language, proficiency, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7)`, language.ID, language.UserID, language.LanguageCode, language.Language, language.Proficiency, language.CreatedAt, language.UpdatedAt)
+	_, err := r.db.ExecContext(ctx, `INSERT INTO languages (id, user_id, language_code, language, proficiency, sync_version, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, language.ID, language.UserID, language.LanguageCode, language.Language, language.Proficiency, int64(1), language.CreatedAt, language.UpdatedAt)
 	return err
 }
 
@@ -32,7 +32,7 @@ func (r *Repository) Fetch(ctx context.Context, userID string) ([]Language, erro
 		log.Printf("[DB] FetchLanguages: %v", time.Since(start))
 	}()
 
-	rows, err := r.db.QueryContext(ctx, `SELECT id, user_id, language_code, language, proficiency, created_at, updated_at FROM languages WHERE user_id = $1 ORDER BY proficiency DESC, language ASC`, userID)
+	rows, err := r.db.QueryContext(ctx, `SELECT id, user_id, language_code, language, proficiency, sync_version, created_at, updated_at FROM languages WHERE user_id = $1 ORDER BY proficiency DESC, language ASC`, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -46,6 +46,7 @@ func (r *Repository) Fetch(ctx context.Context, userID string) ([]Language, erro
 			&language.LanguageCode,
 			&language.Language,
 			&language.Proficiency,
+			&language.SyncVersion,
 			&language.CreatedAt,
 			&language.UpdatedAt,
 		); err != nil {

@@ -2,6 +2,8 @@ package languages
 
 import (
 	"net/http"
+
+	"github.com/sasvyn/backend/internal/modules/idempotency"
 )
 
 func RegisterRoutes(
@@ -13,18 +15,23 @@ func RegisterRoutes(
 		"GET /languages",
 		requireAuth(http.HandlerFunc(handler.Fetch)),
 	)
+
+	mux.Handle(
+		"GET /languages/{id}",
+		requireAuth(http.HandlerFunc(handler.Fetch)),
+	)
 	mux.Handle(
 		"POST /languages",
-		requireAuth(http.HandlerFunc(handler.Create)),
+		requireAuth(idempotency.RequireIdempotencyKey(http.HandlerFunc(handler.Create))),
 	)
 
 	mux.Handle(
 		"PUT /languages/{id}",
-		requireAuth(http.HandlerFunc(handler.Update)),
+		requireAuth(idempotency.RequireIdempotencyKey(http.HandlerFunc(handler.Update))),
 	)
 
 	mux.Handle(
 		"DELETE /languages/{id}",
-		requireAuth(http.HandlerFunc(handler.Delete)),
+		requireAuth(idempotency.RequireIdempotencyKey(http.HandlerFunc(handler.Delete))),
 	)
 }

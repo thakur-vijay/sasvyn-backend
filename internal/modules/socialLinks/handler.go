@@ -18,8 +18,8 @@ type Handler struct {
 	idempotencyService *idempotency.Service
 }
 
-func NewHandler(repository *Repository) *Handler {
-	return &Handler{repository: repository}
+func NewHandler(repository *Repository, idempotencyService *idempotency.Service) *Handler {
+	return &Handler{repository: repository, idempotencyService: idempotencyService}
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {

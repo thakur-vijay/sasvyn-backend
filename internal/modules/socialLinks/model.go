@@ -1,6 +1,8 @@
 package sociallinks
 
-import "time"
+import (
+	"github.com/sasvyn/backend/internal/domain/model"
+)
 
 type LinkType string
 
@@ -17,13 +19,10 @@ const (
 )
 
 type SocialLink struct {
-	ID          string    `json:"id"`
-	UserID      string    `json:"user_id"`
-	Type        LinkType  `json:"type"`
-	Url         string    `json:"url"`
-	SyncVersion *int64    `json:"sync_version"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	model.BaseModel
+	UserID string   `json:"user_id"`
+	Type   LinkType `json:"type"`
+	Url    string   `json:"url"`
 }
 
 type CreateSocialLinkDTO struct {

@@ -1,0 +1,2 @@
+ALTER TABLE languages
+ADD COLUMN sync_version BIGINT NOT NULL DEFAULT 1;
