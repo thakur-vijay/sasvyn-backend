@@ -92,9 +92,35 @@ func (h *Handler) Fetch(w http.ResponseWriter, r *http.Request) {
 	response.WriteList(w, http.StatusOK, "Languages fetched successfully", languages)
 }
 
+func (h *Handler) FetchByID(w http.ResponseWriter, r *http.Request) {
+	languageID := r.PathValue("id")
+	userID, _ := auth.UserID(r.Context())
+
+	language, err := h.repository.FetchByID(r.Context(), languageID, userID)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			response.Write(w, http.StatusNotFound, "Language was not found")
+			return
+		}
+
+		log.Printf("Fetch language error: %v", err)
+		response.Write(w, http.StatusInternalServerError, "Failed to fetch langauge")
+		return
+	}
+
+	response.WriteItem(
+		w,
+		http.StatusOK,
+		"Language fetched successfully",
+		language,
+	)
+}
+
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	languageID := r.PathValue("id")
 	userID, _ := auth.UserID(r.Context())
+	idempotencyKey := r.Header.Get("Idempotency-Key")
 
 	var request UpdateLanguageDTO
 	if err := response.DecodeJSONAndValidate(r, &request); err != nil {
@@ -102,33 +128,62 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// if request.LanguageCode == nil && request.Language == nil && request.Proficiency == nil {
-	// 	response.Write(w, http.StatusBadRequest, "at least one field is required")
-	// 	return
-	// }
+	result, err := h.idempotencyService.Execute(r.Context(), userID, idempotencyKey, func() (idempotency.Result, error) {
+		updatedLanguage, err := h.repository.Update(r.Context(), languageID, userID, request)
+		if err != nil {
+			return idempotency.Result{}, err
+		}
 
-	if err := h.repository.Update(
-		r.Context(),
-		languageID,
-		userID,
-		request,
-	); err != nil {
-		if err == sql.ErrNoRows {
-			response.Write(w, http.StatusNotFound, "language was not found")
+		return idempotency.Result{
+			StatusCode: http.StatusOK,
+			Message:    "Language updated successfully",
+			Data:       updatedLanguage,
+		}, nil
+	})
+
+	if err != nil {
+		if errors.Is(err, idempotency.ErrAlreadyProcessing) {
+			response.Write(
+				w,
+				http.StatusConflict,
+				err.Error(),
+			)
+			return
+		}
+
+		if errors.Is(err, sql.ErrNoRows) {
+			response.Write(
+				w,
+				http.StatusNotFound,
+				"Langauge was not found",
+			)
 			return
 		}
 
 		if strings.Contains(err.Error(), "23505") {
-			response.Write(w, http.StatusConflict, "language already exists")
+			response.Write(
+				w,
+				http.StatusConflict,
+				"Language already exists",
+			)
 			return
 		}
 
-		log.Printf("Update language error: %v", err)
-		response.Write(w, http.StatusInternalServerError, "language could not be updated")
+		log.Printf("Update langauge error: %v", err)
+		response.Write(
+			w,
+			http.StatusInternalServerError,
+			"Language could not be updated",
+		)
+
 		return
 	}
 
-	response.Write(w, http.StatusOK, "language updated successfully")
+	response.WriteRaw(
+		w,
+		result.StatusCode,
+		result.Body,
+	)
 }
 
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {

@@ -18,7 +18,7 @@ func RegisterRoutes(
 
 	mux.Handle(
 		"GET /languages/{id}",
-		requireAuth(http.HandlerFunc(handler.Fetch)),
+		requireAuth(http.HandlerFunc(handler.FetchByID)),
 	)
 	mux.Handle(
 		"POST /languages",

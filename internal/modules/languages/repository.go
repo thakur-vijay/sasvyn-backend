@@ -3,6 +3,7 @@ package languages
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -63,12 +64,50 @@ func (r *Repository) Fetch(ctx context.Context, userID string) ([]Language, erro
 	return languages, nil
 }
 
+func (r *Repository) FetchByID(ctx context.Context, id, userID string) (Language, error) {
+	start := time.Now()
+	defer func() {
+		log.Printf("[DB] FetchLanguageByID: %v", time.Since(start))
+	}()
+
+	var language Language
+
+	err := r.db.QueryRowContext(ctx, `
+	SELECT id, user_id, language_code, language, proficiency, sync_version, created_at, updated_at FROM languages WHERE id = $1 AND user_id = $2
+	`,
+		id,
+		userID,
+	).Scan(
+		&language.ID,
+		&language.UserID,
+		&language.LanguageCode,
+		&language.Language,
+		&language.Proficiency,
+		&language.SyncVersion,
+		&language.CreatedAt,
+		&language.UpdatedAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Language{}, sql.ErrNoRows
+		}
+
+		return Language{}, err
+	}
+
+	language.CreatedAt = language.CreatedAt.UTC()
+	language.UpdatedAt = language.UpdatedAt.UTC()
+
+	return language, nil
+}
+
 func (r *Repository) Update(
 	ctx context.Context,
 	id string,
 	userID string,
 	request UpdateLanguageDTO,
-) error {
+) (Language, error) {
 	start := time.Now()
 	defer func() {
 		log.Printf("[DB] UpdateLanguage: %v", time.Since(start))
@@ -100,27 +139,35 @@ func (r *Repository) Update(
 	args = append(args, time.Now().UTC())
 	arg++
 
+	set = append(set, "sync_version = sync_version + 1")
+
 	args = append(args, id, userID)
 
 	query := fmt.Sprintf(
 		`UPDATE languages
 		 SET %s
-		 WHERE id = $%d AND user_id = $%d`,
+		 WHERE id = $%d AND user_id = $%d RETURNING id, user_id, language_code, language, proficiency, sync_version, created_at, updated_at`,
 		strings.Join(set, ", "),
 		arg,
 		arg+1,
 	)
 
-	result, err := r.db.ExecContext(ctx, query, args...)
-	if err != nil {
-		return err
-	}
+	var updatedLanguage Language
+	err := r.db.QueryRowContext(ctx, query, args...).Scan(
+		&updatedLanguage.ID,
+		&updatedLanguage.UserID,
+		&updatedLanguage.LanguageCode,
+		&updatedLanguage.Language,
+		&updatedLanguage.Proficiency,
+		&updatedLanguage.SyncVersion,
+		&updatedLanguage.CreatedAt,
+		&updatedLanguage.UpdatedAt,
+	)
 
-	if rows, _ := result.RowsAffected(); rows == 0 {
-		return sql.ErrNoRows
-	}
+	updatedLanguage.CreatedAt = updatedLanguage.CreatedAt.UTC()
+	updatedLanguage.UpdatedAt = updatedLanguage.UpdatedAt.UTC()
 
-	return nil
+	return updatedLanguage, err
 }
 
 func (r *Repository) Delete(ctx context.Context, languageID, userID string) error {
