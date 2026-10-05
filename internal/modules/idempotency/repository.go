@@ -166,6 +166,15 @@ func (r *Repository) Complete(
 	return err
 }
 
+func (r *Repository) DeleteExpiredIdempotencyKeys(ctx context.Context) error {
+	_, err := r.db.ExecContext(ctx, `
+		DELETE FROM idempotency_keys
+		WHERE created_at < NOW() - INTERVAL '24 hours'
+	`)
+
+	return err
+}
+
 func (r *Repository) Delete(
 	ctx context.Context,
 	userID string,
