@@ -13,6 +13,7 @@ type Language struct {
 }
 
 type CreateLanguageDTO struct {
+	ID           string `json:"id" validate:"required,valid_uuid4"`
 	LanguageCode string `json:"language_code" validate:"required"`
 	Language     string `json:"language" validate:"required"`
 	Proficiency  int16  `json:"proficiency" validate:"required,min=1,max=5"`

@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-	"uuid"
 
 	"github.com/sasvyn/backend/internal/modules/auth"
 	"github.com/sasvyn/backend/internal/modules/idempotency"
@@ -36,7 +35,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	result, err := h.idempotencyService.Execute(r.Context(), userID, idempotencyKey, func() (idempotency.Result, error) {
 		now := time.Now().UTC()
 		language := Language{
-			ID:           uuid.New().String(),
+			ID:           request.ID,
 			UserID:       userID,
 			LanguageCode: request.LanguageCode,
 			Language:     request.Language,
