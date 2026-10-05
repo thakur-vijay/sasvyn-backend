@@ -1,0 +1,2 @@
+ALTER TABLE skills
+ADD COLUMN sync_version BIGINT NOT NULL DEFAULT 1;

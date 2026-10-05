@@ -44,7 +44,6 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 			UpdatedAt:   now,
 		}
 		if err := h.repository.Create(r.Context(), skill); err != nil {
-			response.Write(w, http.StatusInternalServerError, "failed to create skill")
 			return idempotency.Result{}, err
 		}
 		return idempotency.Result{

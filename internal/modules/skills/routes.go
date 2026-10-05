@@ -18,7 +18,7 @@ func RegisterRoutes(
 
 	mux.Handle(
 		"GET /skills/{id}",
-		requireAuth(http.HandlerFunc(handler.Fetch)),
+		requireAuth(http.HandlerFunc(handler.FetchByID)),
 	)
 
 	mux.Handle(
