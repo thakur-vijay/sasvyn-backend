@@ -189,17 +189,46 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	languageID := r.PathValue("id")
 	userID, _ := auth.UserID(r.Context())
+	idempotencyKey := r.Header.Get("Idempotency-Key")
 
-	if err := h.repository.Delete(r.Context(), languageID, userID); err != nil {
-		if err == sql.ErrNoRows {
-			response.Write(w, http.StatusNotFound, "language was not found")
+	result, err := h.idempotencyService.Execute(r.Context(), userID, idempotencyKey, func() (idempotency.Result, error) {
+		if err := h.repository.Delete(r.Context(), languageID, userID); err != nil {
+			return idempotency.Result{}, err
+		}
+
+		return idempotency.Result{
+			StatusCode: http.StatusOK,
+			Message:    "Language deleted successfully",
+		}, nil
+	})
+
+	if err != nil {
+		if errors.Is(err, idempotency.ErrAlreadyProcessing) {
+			response.Write(w, http.StatusConflict, err.Error())
 			return
 		}
 
-		log.Printf("Update language error: %v", err)
-		response.Write(w, http.StatusInternalServerError, "language could not be deleted")
+		if errors.Is(err, sql.ErrNoRows) {
+			response.Write(
+				w,
+				http.StatusNotFound,
+				"Language was not found",
+			)
+			return
+		}
+
+		log.Printf("Delete language error: %v", err)
+		response.Write(
+			w,
+			http.StatusInternalServerError,
+			"Language could not be deleted",
+		)
 		return
 	}
 
-	response.Write(w, http.StatusOK, "language deleted successfully")
+	response.WriteRaw(
+		w,
+		result.StatusCode,
+		result.Body,
+	)
 }
