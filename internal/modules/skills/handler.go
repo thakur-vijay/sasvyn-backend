@@ -2,48 +2,78 @@ package skills
 
 import (
 	"database/sql"
+	"errors"
 	"log"
 	"net/http"
 	"strings"
 	"time"
-	"uuid"
 
 	"github.com/sasvyn/backend/internal/modules/auth"
+	"github.com/sasvyn/backend/internal/modules/idempotency"
 	"github.com/sasvyn/backend/internal/response"
 )
 
 type Handler struct {
-	repository *Repository
+	repository         *Repository
+	idempotencyService *idempotency.Service
 }
 
-func NewHandler(repository *Repository) *Handler {
-	return &Handler{repository: repository}
+func NewHandler(repository *Repository, idempotencyService *idempotency.Service) *Handler {
+	return &Handler{repository: repository, idempotencyService: idempotencyService}
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
-
+	userID, _ := auth.UserID(r.Context())
+	idempotencyKey := r.Header.Get("Idempotency-Key")
 	var request CreateSkillDTO
 
 	if err := response.DecodeJSON(r, &request); err != nil {
 		response.Write(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	userID, _ := auth.UserID(r.Context())
-	now := time.Now().UTC()
-	skill := Skill{
-		ID:        uuid.New().String(),
-		UserID:    userID,
-		Skill:     request.Skill,
-		Category:  request.Category,
-		CreatedAt: now,
-		UpdatedAt: now,
-	}
-	if err := h.repository.Create(r.Context(), skill); err != nil {
-		response.Write(w, http.StatusInternalServerError, "failed to create skill")
+
+	result, err := h.idempotencyService.Execute(r.Context(), userID, idempotencyKey, func() (idempotency.Result, error) {
+		now := time.Now().UTC()
+		skill := Skill{
+			ID:          request.ID,
+			UserID:      userID,
+			Skill:       request.Skill,
+			Category:    request.Category,
+			SyncVersion: 1,
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		}
+		if err := h.repository.Create(r.Context(), skill); err != nil {
+			response.Write(w, http.StatusInternalServerError, "failed to create skill")
+			return idempotency.Result{}, err
+		}
+		return idempotency.Result{
+			StatusCode: http.StatusCreated,
+			Message:    "Skill added successfully",
+			Data:       skill,
+		}, nil
+	})
+
+	if err != nil {
+		if errors.Is(err, idempotency.ErrAlreadyProcessing) {
+			response.Write(w, http.StatusConflict, err.Error())
+			return
+		}
+
+		if errors.Is(err, sql.ErrNoRows) {
+			response.Write(
+				w, http.StatusNotFound,
+				"Skill was not found",
+			)
+			return
+		}
+
+		log.Printf("Create Skill error: %v", err)
+		response.Write(w, http.StatusInternalServerError, "Skill could not be created")
 		return
 	}
 
-	response.WriteItem(w, http.StatusCreated, "Skill added successfully", skill)
+	response.WriteRaw(w, result.StatusCode, result.Body)
 }
 
 func (h *Handler) Fetch(w http.ResponseWriter, r *http.Request) {
@@ -57,59 +87,143 @@ func (h *Handler) Fetch(w http.ResponseWriter, r *http.Request) {
 	response.WriteList(w, http.StatusOK, "Skill fetched successfully", skills)
 }
 
-func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) FetchByID(w http.ResponseWriter, r *http.Request) {
 	skillID := r.PathValue("id")
 	userID, _ := auth.UserID(r.Context())
 
-	var request UpdateSkillDTO
+	skill, err := h.repository.FetchByID(r.Context(), skillID, userID)
 
-	if err := response.DecodeJSON(r, &request); err != nil {
+	if err != nil {
+		if err == sql.ErrNoRows {
+			response.Write(w, http.StatusNotFound, "Skill was not found")
+			return
+		}
+
+		log.Printf("Fetch Skill error: %v", err)
+		response.Write(w, http.StatusInternalServerError, "Failed to fetch Skill")
+		return
+	}
+
+	response.WriteItem(
+		w,
+		http.StatusOK,
+		"Skill fetched successfully",
+		skill,
+	)
+}
+
+func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
+	skillID := r.PathValue("id")
+	userID, _ := auth.UserID(r.Context())
+	idempotencyKey := r.Header.Get("Idempotency-Key")
+
+	var request UpdateSkillDTO
+	if err := response.DecodeJSONAndValidate(r, &request); err != nil {
 		response.Write(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	skill := Skill{
-		ID:        skillID,
-		UserID:    userID,
-		Skill:     request.Skill,
-		Category:  request.Category,
-		UpdatedAt: time.Now().UTC(),
-	}
+	result, err := h.idempotencyService.Execute(r.Context(), userID, idempotencyKey, func() (idempotency.Result, error) {
+		updatedSkill, err := h.repository.Update(r.Context(), skillID, userID, request)
+		if err != nil {
+			return idempotency.Result{}, err
+		}
 
-	if err := h.repository.Update(r.Context(), skill); err != nil {
-		if err == sql.ErrNoRows {
-			response.Write(w, http.StatusNotFound, "skill was not found")
+		return idempotency.Result{
+			StatusCode: http.StatusOK,
+			Message:    "Skill updated successfully",
+			Data:       updatedSkill,
+		}, nil
+	})
+
+	if err != nil {
+		if errors.Is(err, idempotency.ErrAlreadyProcessing) {
+			response.Write(
+				w,
+				http.StatusConflict,
+				err.Error(),
+			)
+			return
+		}
+
+		if errors.Is(err, sql.ErrNoRows) {
+			response.Write(
+				w,
+				http.StatusNotFound,
+				"Skill was not found",
+			)
 			return
 		}
 
 		if strings.Contains(err.Error(), "23505") {
-
-			response.Write(w, http.StatusConflict, "skill already exists")
+			response.Write(
+				w,
+				http.StatusConflict,
+				"Skill already exists",
+			)
 			return
 		}
 
-		log.Printf("Update skill error: %v", err)
-		response.Write(w, http.StatusInternalServerError, "skill could not be updated")
+		log.Printf("Update Skill error: %v", err)
+		response.Write(
+			w,
+			http.StatusInternalServerError,
+			"Skill could not be updated",
+		)
+
 		return
 	}
 
-	response.WriteItem(w, http.StatusOK, "skill updated successfully", skill)
+	response.WriteRaw(
+		w,
+		result.StatusCode,
+		result.Body,
+	)
 }
 
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	skillID := r.PathValue("id")
 	userID, _ := auth.UserID(r.Context())
+	idempotencyKey := r.Header.Get("Idempotency-Key")
 
-	if err := h.repository.Delete(r.Context(), skillID, userID); err != nil {
-		if err == sql.ErrNoRows {
-			response.Write(w, http.StatusNotFound, "skill was not found")
+	result, err := h.idempotencyService.Execute(r.Context(), userID, idempotencyKey, func() (idempotency.Result, error) {
+		if err := h.repository.Delete(r.Context(), skillID, userID); err != nil {
+			return idempotency.Result{}, err
+		}
+
+		return idempotency.Result{
+			StatusCode: http.StatusOK,
+			Message:    "Skill deleted successfully",
+		}, nil
+	})
+
+	if err != nil {
+		if errors.Is(err, idempotency.ErrAlreadyProcessing) {
+			response.Write(w, http.StatusConflict, err.Error())
 			return
 		}
 
-		log.Printf("Update skill error: %v", err)
-		response.Write(w, http.StatusInternalServerError, "skill could not be deleted")
+		if errors.Is(err, sql.ErrNoRows) {
+			response.Write(
+				w,
+				http.StatusNotFound,
+				"Skill was not found",
+			)
+			return
+		}
+
+		log.Printf("Delete Skill error: %v", err)
+		response.Write(
+			w,
+			http.StatusInternalServerError,
+			"Skill could not be deleted",
+		)
 		return
 	}
 
-	response.Write(w, http.StatusOK, "skill deleted successfully")
+	response.WriteRaw(
+		w,
+		result.StatusCode,
+		result.Body,
+	)
 }

@@ -2,6 +2,8 @@ package skills
 
 import (
 	"net/http"
+
+	"github.com/sasvyn/backend/internal/modules/idempotency"
 )
 
 func RegisterRoutes(
@@ -13,18 +15,24 @@ func RegisterRoutes(
 		"GET /skills",
 		requireAuth(http.HandlerFunc(handler.Fetch)),
 	)
+
+	mux.Handle(
+		"GET /skills/{id}",
+		requireAuth(http.HandlerFunc(handler.Fetch)),
+	)
+
 	mux.Handle(
 		"POST /skills",
-		requireAuth(http.HandlerFunc(handler.Create)),
+		requireAuth(idempotency.RequireIdempotencyKey(http.HandlerFunc(handler.Create))),
 	)
 
 	mux.Handle(
 		"PUT /skills/{id}",
-		requireAuth(http.HandlerFunc(handler.Update)),
+		requireAuth(idempotency.RequireIdempotencyKey(http.HandlerFunc(handler.Update))),
 	)
 
 	mux.Handle(
 		"DELETE /skills/{id}",
-		requireAuth(http.HandlerFunc(handler.Delete)),
+		requireAuth(idempotency.RequireIdempotencyKey(http.HandlerFunc(handler.Delete))),
 	)
 }

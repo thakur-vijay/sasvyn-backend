@@ -33,7 +33,7 @@ func BuildRouter(db *sql.DB, limiters *RateLimiters, r2Client *s3.Client) http.H
 	authHandler := auth.NewHandler(authService, sessionService)
 	authMiddleWare := auth.NewMiddleware(sessionService)
 	userHandler := users.NewHandler(userRepository, presignClient, idempotencyService)
-	skillsHandler := skills.NewHandler(skillRepository)
+	skillsHandler := skills.NewHandler(skillRepository, idempotencyService)
 	languagesHandler := languages.NewHandler(languagesRepository, idempotencyService)
 	uploadHandler := upload.NewHandler(r2Client, presignClient)
 	socialLinksHandler := sociallinks.NewHandler(socialLinksRepository, idempotencyService)

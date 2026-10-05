@@ -1,22 +1,23 @@
 package skills
 
-import "time"
+import (
+	"github.com/sasvyn/backend/internal/domain/model"
+)
 
 type Skill struct {
-	ID        string    `json:"id"`
-	UserID    string    `json:"user_id"`
-	Skill     string    `json:"skill"`
-	Category  string    `json:"category"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	model.BaseModel
+	UserID   string `json:"user_id"`
+	Skill    string `json:"skill"`
+	Category string `json:"category"`
 }
 
 type CreateSkillDTO struct {
-	Skill    string `json:"skill"`
-	Category string `json:"category"`
+	ID       string `json:"id" validate:"required,valid_uuid4"`
+	Skill    string `json:"skill" validate:"required"`
+	Category string `json:"category" validate:"required"`
 }
 
 type UpdateSkillDTO struct {
-	Skill    string `json:"skill"`
-	Category string `json:"category"`
+	Skill    *string `json:"skill" validate:"omitempty,notblank"`
+	Category *string `json:"category" validate:"omitempty,notblank"`
 }
