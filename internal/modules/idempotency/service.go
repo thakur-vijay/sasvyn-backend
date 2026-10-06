@@ -15,6 +15,7 @@ type Result struct {
 	Message    string
 	Data       any
 	Body       []byte
+	Replayed   bool
 }
 
 var ErrAlreadyProcessing = errors.New(

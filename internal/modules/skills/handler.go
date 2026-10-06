@@ -10,16 +10,18 @@ import (
 
 	"github.com/sasvyn/backend/internal/modules/auth"
 	"github.com/sasvyn/backend/internal/modules/idempotency"
+	"github.com/sasvyn/backend/internal/realtime"
 	"github.com/sasvyn/backend/internal/response"
 )
 
 type Handler struct {
 	repository         *Repository
 	idempotencyService *idempotency.Service
+	publisher          *realtime.Publisher
 }
 
-func NewHandler(repository *Repository, idempotencyService *idempotency.Service) *Handler {
-	return &Handler{repository: repository, idempotencyService: idempotencyService}
+func NewHandler(repository *Repository, idempotencyService *idempotency.Service, publisher *realtime.Publisher) *Handler {
+	return &Handler{repository: repository, idempotencyService: idempotencyService, publisher: publisher}
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
@@ -32,26 +34,34 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.idempotencyService.Execute(r.Context(), userID, idempotencyKey, func() (idempotency.Result, error) {
-		now := time.Now().UTC()
-		skill := Skill{
-			ID:          request.ID,
-			UserID:      userID,
-			Skill:       request.Skill,
-			Category:    request.Category,
-			SyncVersion: 1,
-			CreatedAt:   now,
-			UpdatedAt:   now,
-		}
-		if err := h.repository.Create(r.Context(), skill); err != nil {
-			return idempotency.Result{}, err
-		}
-		return idempotency.Result{
-			StatusCode: http.StatusCreated,
-			Message:    "Skill added successfully",
-			Data:       skill,
-		}, nil
-	})
+	result, err := h.idempotencyService.Execute(
+		r.Context(),
+		userID,
+		idempotencyKey,
+		func() (idempotency.Result, error) {
+			now := time.Now().UTC()
+
+			skill := Skill{
+				ID:          request.ID,
+				UserID:      userID,
+				Skill:       request.Skill,
+				Category:    request.Category,
+				SyncVersion: 1,
+				CreatedAt:   now,
+				UpdatedAt:   now,
+			}
+
+			if err := h.repository.Create(r.Context(), skill); err != nil {
+				return idempotency.Result{}, err
+			}
+
+			return idempotency.Result{
+				StatusCode: http.StatusCreated,
+				Message:    "Skill added successfully",
+				Data:       skill,
+			}, nil
+		},
+	)
 
 	if err != nil {
 		if errors.Is(err, idempotency.ErrAlreadyProcessing) {
@@ -61,18 +71,36 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 
 		if errors.Is(err, sql.ErrNoRows) {
 			response.Write(
-				w, http.StatusNotFound,
+				w,
+				http.StatusNotFound,
 				"Skill was not found",
 			)
 			return
 		}
 
 		log.Printf("Create Skill error: %v", err)
-		response.Write(w, http.StatusInternalServerError, "Skill could not be created")
+		response.Write(
+			w,
+			http.StatusInternalServerError,
+			"Skill could not be created",
+		)
 		return
 	}
 
 	response.WriteRaw(w, result.StatusCode, result.Body)
+
+	if !result.Replayed {
+		if err := h.publisher.Publish(
+			r.Context(),
+			userID,
+			realtime.Event{
+				Type: realtime.EventSkillCreated,
+				Data: result.Data,
+			},
+		); err != nil {
+			log.Printf("failed to publish skill.created event: %v", err)
+		}
+	}
 }
 
 func (h *Handler) Fetch(w http.ResponseWriter, r *http.Request) {

@@ -9,6 +9,7 @@ import (
 	sociallinks "github.com/sasvyn/backend/internal/modules/socialLinks"
 	"github.com/sasvyn/backend/internal/modules/upload"
 	"github.com/sasvyn/backend/internal/modules/users"
+	"github.com/sasvyn/backend/internal/realtime"
 )
 
 const v1Prefix = "/api/v1"
@@ -21,6 +22,8 @@ type Dependencies struct {
 	LanguagesHandler  *languages.Handler
 	UploadHandler     *upload.Handler
 	SocialLinkHandler *sociallinks.Handler
+	RealtimeHandler   *realtime.Handler
+	RealtimePublisher *realtime.Publisher
 }
 
 func NewRouter(dependencies Dependencies) http.Handler {
@@ -34,7 +37,11 @@ func NewRouter(dependencies Dependencies) http.Handler {
 	languages.RegisterRoutes(v1Mux, dependencies.LanguagesHandler, dependencies.AuthMiddleware.RequireAuth)
 	upload.RegisterRoutes(v1Mux, dependencies.UploadHandler, dependencies.AuthMiddleware.RequireAuth)
 	sociallinks.RegisterRoutes(v1Mux, dependencies.SocialLinkHandler, dependencies.AuthMiddleware.RequireAuth)
-
+	realtime.RegisterRoutes(
+		v1Mux,
+		dependencies.RealtimeHandler,
+		dependencies.AuthMiddleware.RequireAuth,
+	)
 	mux.Handle(v1Prefix+"/", http.StripPrefix(v1Prefix, v1Mux))
 
 	return mux

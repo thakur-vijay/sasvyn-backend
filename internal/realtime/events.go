@@ -1,0 +1,15 @@
+package realtime
+
+const (
+	EventSkillCreated = "skill.created"
+	EventSkillUpdated = "skill.updated"
+	EventSkillDeleted = "skill.deleted"
+
+	EventLanguageCreated = "language.created"
+	EventLanguageUpdated = "language.updated"
+	EventLanguageDeleted = "language.deleted"
+
+	EventProjectCreated = "project.created"
+	EventProjectUpdated = "project.updated"
+	EventProjectDeleted = "project.deleted"
+)
