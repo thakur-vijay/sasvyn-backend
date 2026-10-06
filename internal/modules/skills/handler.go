@@ -206,6 +206,19 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		result.StatusCode,
 		result.Body,
 	)
+
+	if !result.Replayed {
+		if err := h.publisher.Publish(
+			r.Context(),
+			userID,
+			realtime.Event{
+				Type: realtime.EventSkillUpdated,
+				Data: result.Data,
+			},
+		); err != nil {
+			log.Printf("failed to publish skill.created event: %v", err)
+		}
+	}
 }
 
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
@@ -253,4 +266,17 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 		result.StatusCode,
 		result.Body,
 	)
+
+	if !result.Replayed {
+		if err := h.publisher.Publish(
+			r.Context(),
+			userID,
+			realtime.Event{
+				Type: realtime.EventSkillDeleted,
+				Data: result.Data,
+			},
+		); err != nil {
+			log.Printf("failed to publish skill.created event: %v", err)
+		}
+	}
 }
