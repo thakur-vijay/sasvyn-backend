@@ -82,6 +82,7 @@ func (m *Manager) Send(
 	)
 
 	m.mu.RLock()
+
 	connections := make([]*websocket.Conn, 0, len(m.connections[userID]))
 
 	for conn := range m.connections[userID] {
@@ -98,6 +99,8 @@ func (m *Manager) Send(
 		connectionCount,
 	)
 
+	var sendErr error
+
 	for _, conn := range connections {
 		if err := conn.Write(ctx, websocket.MessageText, message); err != nil {
 			log.Printf(
@@ -106,7 +109,12 @@ func (m *Manager) Send(
 				err,
 			)
 
-			return err
+			// Remove stale/dead connection.
+			m.Remove(userID, conn)
+
+			// Don't stop broadcasting to other devices.
+			sendErr = err
+			continue
 		}
 
 		log.Printf(
@@ -115,7 +123,7 @@ func (m *Manager) Send(
 		)
 	}
 
-	return nil
+	return sendErr
 }
 
 func (m *Manager) SendEvent(
