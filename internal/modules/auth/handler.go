@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/sasvyn/backend/internal/middleware"
 	"github.com/sasvyn/backend/internal/modules/sessions"
 	"github.com/sasvyn/backend/internal/response"
 )
@@ -77,7 +78,7 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
-	sessionID, ok := SessionID(r.Context())
+	sessionID, ok := middleware.SessionID(r.Context())
 	if !ok {
 		response.Write(w, http.StatusUnauthorized, "authentication required")
 		return

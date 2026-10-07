@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 
+	"github.com/sasvyn/backend/internal/middleware"
 	"github.com/sasvyn/backend/internal/modules/auth"
 	"github.com/sasvyn/backend/internal/modules/languages"
 	"github.com/sasvyn/backend/internal/modules/skills"
@@ -16,7 +17,7 @@ const v1Prefix = "/api/v1"
 
 type Dependencies struct {
 	AuthHandler       *auth.Handler
-	AuthMiddleware    *auth.Middleware
+	AuthMiddleware    *middleware.Middleware
 	UserHandler       *users.Handler
 	SkillsHandler     *skills.Handler
 	LanguagesHandler  *languages.Handler
@@ -32,16 +33,12 @@ func NewRouter(dependencies Dependencies) http.Handler {
 
 	v1Mux := http.NewServeMux()
 	auth.RegisterRoutes(v1Mux, dependencies.AuthHandler, dependencies.AuthMiddleware)
-	users.RegisterRoutes(v1Mux, dependencies.UserHandler, dependencies.AuthMiddleware.RequireAuth)
-	skills.RegisterRoutes(v1Mux, dependencies.SkillsHandler, dependencies.AuthMiddleware.RequireAuth)
-	languages.RegisterRoutes(v1Mux, dependencies.LanguagesHandler, dependencies.AuthMiddleware.RequireAuth)
-	upload.RegisterRoutes(v1Mux, dependencies.UploadHandler, dependencies.AuthMiddleware.RequireAuth)
-	sociallinks.RegisterRoutes(v1Mux, dependencies.SocialLinkHandler, dependencies.AuthMiddleware.RequireAuth)
-	realtime.RegisterRoutes(
-		v1Mux,
-		dependencies.RealtimeHandler,
-		dependencies.AuthMiddleware.RequireAuth,
-	)
+	users.RegisterRoutes(v1Mux, dependencies.UserHandler, dependencies.AuthMiddleware)
+	skills.RegisterRoutes(v1Mux, dependencies.SkillsHandler, dependencies.AuthMiddleware)
+	languages.RegisterRoutes(v1Mux, dependencies.LanguagesHandler, dependencies.AuthMiddleware)
+	upload.RegisterRoutes(v1Mux, dependencies.UploadHandler, dependencies.AuthMiddleware)
+	sociallinks.RegisterRoutes(v1Mux, dependencies.SocialLinkHandler, dependencies.AuthMiddleware)
+	realtime.RegisterRoutes(v1Mux, dependencies.RealtimeHandler, dependencies.AuthMiddleware)
 	mux.Handle(v1Prefix+"/", http.StripPrefix(v1Prefix, v1Mux))
 
 	return mux

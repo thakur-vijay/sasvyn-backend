@@ -1,11 +1,15 @@
 package auth
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/sasvyn/backend/internal/middleware"
+)
 
 func RegisterRoutes(
 	mux *http.ServeMux,
 	handler *Handler,
-	authMiddleware *Middleware,
+	authMiddleware *middleware.Middleware,
 ) {
 	mux.HandleFunc("POST /auth/socialLogin", handler.SocialLogin)
 	mux.HandleFunc("POST /auth/refresh", handler.Refresh)

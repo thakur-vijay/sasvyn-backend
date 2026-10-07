@@ -2,15 +2,17 @@ package upload
 
 import (
 	"net/http"
+
+	"github.com/sasvyn/backend/internal/middleware"
 )
 
 func RegisterRoutes(
 	mux *http.ServeMux,
 	handler *Handler,
-	requireAuth func(http.Handler) http.Handler,
+	authMiddleware *middleware.Middleware,
 ) {
 	mux.Handle(
 		"POST /upload-url",
-		requireAuth(http.HandlerFunc(handler.CreateUploadURL)),
+		authMiddleware.RequireAuth(http.HandlerFunc(handler.CreateUploadURL)),
 	)
 }

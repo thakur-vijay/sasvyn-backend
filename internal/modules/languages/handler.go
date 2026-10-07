@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sasvyn/backend/internal/modules/auth"
+	"github.com/sasvyn/backend/internal/middleware"
 	"github.com/sasvyn/backend/internal/modules/idempotency"
 	"github.com/sasvyn/backend/internal/response"
 )
@@ -23,7 +23,7 @@ func NewHandler(repository *Repository, idempotencyService *idempotency.Service)
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
-	userID, _ := auth.UserID(r.Context())
+	userID, _ := middleware.UserID(r.Context())
 	idempotencyKey := r.Header.Get("Idempotency-Key")
 
 	var request CreateLanguageDTO
@@ -81,7 +81,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Fetch(w http.ResponseWriter, r *http.Request) {
-	userID, _ := auth.UserID(r.Context())
+	userID, _ := middleware.UserID(r.Context())
 	languages, err := h.repository.Fetch(r.Context(), userID)
 	if err != nil {
 		response.Write(w, http.StatusInternalServerError, "failed to fetch languages")
@@ -93,7 +93,7 @@ func (h *Handler) Fetch(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) FetchByID(w http.ResponseWriter, r *http.Request) {
 	languageID := r.PathValue("id")
-	userID, _ := auth.UserID(r.Context())
+	userID, _ := middleware.UserID(r.Context())
 
 	language, err := h.repository.FetchByID(r.Context(), languageID, userID)
 
@@ -118,7 +118,7 @@ func (h *Handler) FetchByID(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	languageID := r.PathValue("id")
-	userID, _ := auth.UserID(r.Context())
+	userID, _ := middleware.UserID(r.Context())
 	idempotencyKey := r.Header.Get("Idempotency-Key")
 
 	var request UpdateLanguageDTO
@@ -187,7 +187,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	languageID := r.PathValue("id")
-	userID, _ := auth.UserID(r.Context())
+	userID, _ := middleware.UserID(r.Context())
 	idempotencyKey := r.Header.Get("Idempotency-Key")
 
 	result, err := h.idempotencyService.Execute(r.Context(), userID, idempotencyKey, func() (idempotency.Result, error) {

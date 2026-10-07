@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/coder/websocket"
-	"github.com/sasvyn/backend/internal/modules/auth"
+	"github.com/sasvyn/backend/internal/middleware"
 )
 
 type Handler struct {
@@ -18,7 +18,7 @@ func NewHandler(manager *Manager) *Handler {
 }
 
 func (h *Handler) WebSocket(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.UserID(r.Context())
+	userID, ok := middleware.UserID(r.Context())
 	if !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return

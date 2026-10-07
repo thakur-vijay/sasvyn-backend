@@ -3,21 +3,22 @@ package users
 import (
 	"net/http"
 
+	"github.com/sasvyn/backend/internal/middleware"
 	"github.com/sasvyn/backend/internal/modules/idempotency"
 )
 
 func RegisterRoutes(
 	mux *http.ServeMux,
 	handler *Handler,
-	requireAuth func(http.Handler) http.Handler,
+	authMiddleware *middleware.Middleware,
 ) {
 	mux.Handle(
 		"GET /users/{id}",
-		requireAuth(http.HandlerFunc(handler.GetByID)),
+		authMiddleware.RequireAuth(http.HandlerFunc(handler.GetByID)),
 	)
 
 	mux.Handle(
 		"PUT /users/{id}",
-		requireAuth(idempotency.RequireIdempotencyKey(http.HandlerFunc(handler.Update))),
+		authMiddleware.RequireAuth(idempotency.RequireIdempotencyKey(http.HandlerFunc(handler.Update))),
 	)
 }

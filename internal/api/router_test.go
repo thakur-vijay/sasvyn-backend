@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/sasvyn/backend/internal/middleware"
 	"github.com/sasvyn/backend/internal/modules/auth"
 	"github.com/sasvyn/backend/internal/modules/sessions"
 	"github.com/sasvyn/backend/internal/modules/users"
@@ -13,7 +14,7 @@ import (
 func TestNewRouter_ComposesHealthAndVersionedFeatureRoutes(t *testing.T) {
 	userRepository := users.NewRepository(nil)
 	sessionService := sessions.NewService(sessions.NewRepository(nil))
-	authMiddleware := auth.NewMiddleware(sessionService)
+	authMiddleware := middleware.NewMiddleware(sessionService)
 
 	router := NewRouter(Dependencies{
 		AuthHandler:    auth.NewHandler(auth.NewService(userRepository, sessionService), sessionService),

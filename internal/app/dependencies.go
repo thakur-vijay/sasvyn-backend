@@ -6,6 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/sasvyn/backend/internal/api"
+	"github.com/sasvyn/backend/internal/middleware"
 	"github.com/sasvyn/backend/internal/modules/auth"
 	"github.com/sasvyn/backend/internal/modules/idempotency"
 	"github.com/sasvyn/backend/internal/modules/languages"
@@ -19,31 +20,46 @@ import (
 )
 
 func BuildRouter(db *sql.DB, limiters *RateLimiters, r2Client *s3.Client) http.Handler {
+	// Storage
 	presignClient := s3.NewPresignClient(r2Client)
+
+	// Sessions
 	sessionRepository := sessions.NewRepository(db)
 	sessionService := sessions.NewService(sessionRepository)
+
+	// Idempotency
 	idempotencyRepository := idempotency.NewRepository(db)
 	idempotencyService := idempotency.NewService(idempotencyRepository)
+
+	// Repositories
 	userRepository := users.NewRepository(db)
 	skillRepository := skills.NewRepository(db)
 	languagesRepository := languages.NewRepository(db)
 	socialLinksRepository := sociallinks.NewRepository(db)
 
+	// Realtime
 	realtimeManager := realtime.NewManager()
 	realtimeHandler := realtime.NewHandler(realtimeManager)
 	realtimePublisher := realtime.NewPublisher(realtimeManager)
 
+	// Auth
 	authService := auth.NewService(userRepository, sessionService)
 	authHandler := auth.NewHandler(authService, sessionService)
-	authMiddleWare := auth.NewMiddleware(sessionService)
+
+	//Middlewares
+	authMiddleware := middleware.NewMiddleware(sessionService)
+
+	// Handlers
 	userHandler := users.NewHandler(userRepository, presignClient, idempotencyService)
 	skillsHandler := skills.NewHandler(skillRepository, idempotencyService, realtimePublisher)
 	languagesHandler := languages.NewHandler(languagesRepository, idempotencyService)
 	uploadHandler := upload.NewHandler(r2Client, presignClient)
 	socialLinksHandler := sociallinks.NewHandler(socialLinksRepository, idempotencyService)
+
+	// Router
 	router := api.NewRouter(api.Dependencies{
 		AuthHandler:       authHandler,
-		AuthMiddleware:    authMiddleWare,
+		AuthMiddleware:    authMiddleware,
 		UserHandler:       userHandler,
 		SkillsHandler:     skillsHandler,
 		LanguagesHandler:  languagesHandler,
@@ -53,6 +69,7 @@ func BuildRouter(db *sql.DB, limiters *RateLimiters, r2Client *s3.Client) http.H
 		RealtimePublisher: realtimePublisher,
 	})
 
+	// Global Middleware
 	return ratelimit.PolicyMiddleware(
 		limiters.Default,
 		limiters.AuthRefresh,
