@@ -20,5 +20,3 @@ type UpdateUserDTO struct {
 	DateOfBirth *string `json:"date_of_birth" validate:"omitempty,notblank"`
 	ImageKey    *string `json:"img_key" validate:"omitempty,notblank"`
 }
-
-// "img_key": "users/df3e7b14-fac8-4dee-b2db-552aa4e6c4ef/484e6a48-6ebb-433c-b4e4-18af06e97535"
