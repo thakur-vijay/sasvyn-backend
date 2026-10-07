@@ -11,6 +11,7 @@ func RegisterRoutes(
 	mux *http.ServeMux,
 	handler *Handler,
 	authMiddleware *middleware.Middleware,
+	clientIDMiddleware *middleware.ClientIDMiddleware,
 ) {
 	mux.Handle(
 		"GET /skills",
@@ -24,16 +25,16 @@ func RegisterRoutes(
 
 	mux.Handle(
 		"POST /skills",
-		authMiddleware.RequireAuth(idempotency.RequireIdempotencyKey(http.HandlerFunc(handler.Create))),
+		authMiddleware.RequireAuth(clientIDMiddleware.RequireClientID(idempotency.RequireIdempotencyKey(http.HandlerFunc(handler.Create)))),
 	)
 
 	mux.Handle(
 		"PUT /skills/{id}",
-		authMiddleware.RequireAuth(idempotency.RequireIdempotencyKey(http.HandlerFunc(handler.Update))),
+		authMiddleware.RequireAuth(clientIDMiddleware.RequireClientID(idempotency.RequireIdempotencyKey(http.HandlerFunc(handler.Update)))),
 	)
 
 	mux.Handle(
 		"DELETE /skills/{id}",
-		authMiddleware.RequireAuth(idempotency.RequireIdempotencyKey(http.HandlerFunc(handler.Delete))),
+		authMiddleware.RequireAuth(clientIDMiddleware.RequireClientID(idempotency.RequireIdempotencyKey(http.HandlerFunc(handler.Delete)))),
 	)
 }

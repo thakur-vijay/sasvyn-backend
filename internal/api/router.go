@@ -35,7 +35,7 @@ func NewRouter(dependencies Dependencies) http.Handler {
 	v1Mux := http.NewServeMux()
 	auth.RegisterRoutes(v1Mux, dependencies.AuthHandler, dependencies.AuthMiddleware, dependencies.ClientIdMiddleware)
 	users.RegisterRoutes(v1Mux, dependencies.UserHandler, dependencies.AuthMiddleware)
-	skills.RegisterRoutes(v1Mux, dependencies.SkillsHandler, dependencies.AuthMiddleware)
+	skills.RegisterRoutes(v1Mux, dependencies.SkillsHandler, dependencies.AuthMiddleware, dependencies.ClientIdMiddleware)
 	languages.RegisterRoutes(v1Mux, dependencies.LanguagesHandler, dependencies.AuthMiddleware)
 	upload.RegisterRoutes(v1Mux, dependencies.UploadHandler, dependencies.AuthMiddleware)
 	sociallinks.RegisterRoutes(v1Mux, dependencies.SocialLinkHandler, dependencies.AuthMiddleware)
