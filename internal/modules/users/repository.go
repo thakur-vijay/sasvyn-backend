@@ -200,7 +200,7 @@ func (r *Repository) attachImageURL(user *User) {
 
 	url := fmt.Sprintf(
 		"%s/%s",
-		os.Getenv("R2_PUBLIC_URL"),
+		os.Getenv("R2_IMAGE_PUBLIC_URL"),
 		*user.ImageKey,
 	)
 

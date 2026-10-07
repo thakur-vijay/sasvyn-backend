@@ -54,8 +54,13 @@ func (h *Handler) CreateUploadURL(w http.ResponseWriter, r *http.Request) {
 		userID,
 		uuid.New().String(),
 	)
-
-	bucket := os.Getenv("R2_BUCKET_NAME")
+	var bucketName string
+	if request.ContentType == "application/pdf" {
+		bucketName = "R2_DOCUMENT_BUCKET_NAME"
+	} else {
+		bucketName = "R2_IMAGE_BUCKET_NAME"
+	}
+	bucket := os.Getenv(bucketName)
 
 	presigned, err := h.PresignClient.PresignPutObject(
 		r.Context(),

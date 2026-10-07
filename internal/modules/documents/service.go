@@ -10,6 +10,8 @@ import (
 	"github.com/sasvyn/backend/internal/storage"
 )
 
+const bucketName = "R2_DOCUMENT_BUCKET_NAME"
+
 type Service struct {
 	repository *Repository
 	r2Client   *s3.Client
@@ -86,7 +88,7 @@ func (s *Service) Delete(
 	}
 
 	if document.Key != nil {
-		if err := storage.DeleteObject(ctx, s.r2Client, *document.Key); err != nil {
+		if err := storage.DeleteObject(ctx, s.r2Client, *document.Key, bucketName); err != nil {
 			return err
 		}
 	}
@@ -101,7 +103,7 @@ func (r *Service) attachDocumentURL(document *Document) {
 
 	url := fmt.Sprintf(
 		"%s/%s",
-		os.Getenv("R2_PUBLIC_URL"),
+		os.Getenv("R2_DOCUMENT_PUBLIC_URL"),
 		*document.Key,
 	)
 

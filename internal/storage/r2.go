@@ -34,9 +34,9 @@ func NewR2Client() *s3.Client {
 	})
 }
 
-func DeleteObject(ctx context.Context, client *s3.Client, key string) error {
+func DeleteObject(ctx context.Context, client *s3.Client, key string, bucketName string) error {
 	_, err := client.DeleteObject(ctx, &s3.DeleteObjectInput{
-		Bucket: aws.String(os.Getenv("R2_BUCKET_NAME")),
+		Bucket: aws.String(os.Getenv(bucketName)),
 		Key:    aws.String(key),
 	})
 
