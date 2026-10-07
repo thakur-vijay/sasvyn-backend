@@ -2,6 +2,8 @@ package documents
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -45,23 +47,32 @@ func (s *Service) Create(
 	if err := s.repository.Create(ctx, document); err != nil {
 		return Document{}, err
 	}
-
+	s.attachDocumentURL(&document)
 	return document, nil
 }
 
-func (s *Service) Fetch(
-	ctx context.Context,
-	userID string,
-) ([]Document, error) {
-	return s.repository.Fetch(ctx, userID)
+func (s *Service) Fetch(ctx context.Context, userID string) ([]Document, error) {
+	documents, err := s.repository.Fetch(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range documents {
+		s.attachDocumentURL(&documents[i])
+	}
+
+	return documents, nil
 }
 
-func (s *Service) FetchByID(
-	ctx context.Context,
-	documentID string,
-	userID string,
-) (Document, error) {
-	return s.repository.FetchByID(ctx, documentID, userID)
+func (s *Service) FetchByID(ctx context.Context, documentID, userID string) (Document, error) {
+	document, err := s.repository.FetchByID(ctx, documentID, userID)
+	if err != nil {
+		return Document{}, err
+	}
+
+	s.attachDocumentURL(&document)
+
+	return document, nil
 }
 
 func (s *Service) Delete(
@@ -81,4 +92,18 @@ func (s *Service) Delete(
 	}
 
 	return s.repository.Delete(ctx, documentID, userID)
+}
+
+func (r *Service) attachDocumentURL(document *Document) {
+	if document.Key == nil {
+		return
+	}
+
+	url := fmt.Sprintf(
+		"%s/%s",
+		os.Getenv("R2_PUBLIC_URL"),
+		*document.Key,
+	)
+
+	document.Url = &url
 }

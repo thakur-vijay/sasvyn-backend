@@ -4,9 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"log"
-	"os"
 	"time"
 )
 
@@ -56,7 +54,6 @@ func (r *Repository) Fetch(ctx context.Context, userID string) ([]Document, erro
 		}
 		document.CreatedAt = document.CreatedAt.UTC()
 		document.UpdatedAt = document.UpdatedAt.UTC()
-		r.attachDocumentURL(&document)
 		documents = append(documents, document)
 	}
 
@@ -101,7 +98,6 @@ func (r *Repository) FetchByID(ctx context.Context, id, userID string) (Document
 
 	document.CreatedAt = document.CreatedAt.UTC()
 	document.UpdatedAt = document.UpdatedAt.UTC()
-	r.attachDocumentURL(&document)
 	return document, nil
 }
 
@@ -130,18 +126,4 @@ func (r *Repository) Delete(ctx context.Context, documentID, userID string) erro
 	}
 
 	return nil
-}
-
-func (r *Repository) attachDocumentURL(document *Document) {
-	if document.Key == nil {
-		return
-	}
-
-	url := fmt.Sprintf(
-		"%s/%s",
-		os.Getenv("R2_PUBLIC_URL"),
-		*document.Key,
-	)
-
-	document.Url = &url
 }

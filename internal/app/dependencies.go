@@ -61,7 +61,7 @@ func BuildRouter(db *sql.DB, limiters *RateLimiters, r2Client *s3.Client) http.H
 	languagesHandler := languages.NewHandler(languagesRepository, idempotencyService)
 	uploadHandler := upload.NewHandler(r2Client, presignClient)
 	socialLinksHandler := sociallinks.NewHandler(socialLinksRepository, idempotencyService)
-	documentsHandler := documents.NewHandler(documentsService)
+	documentsHandler := documents.NewHandler(documentsService, idempotencyService, realtimePublisher)
 
 	// Router
 	router := api.NewRouter(api.Dependencies{

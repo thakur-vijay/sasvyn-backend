@@ -18,8 +18,8 @@ type Handler struct {
 	publisher          *realtime.Publisher
 }
 
-func NewHandler(service *Service) *Handler {
-	return &Handler{service: service}
+func NewHandler(service *Service, idempotencyService *idempotency.Service, publisher *realtime.Publisher) *Handler {
+	return &Handler{service: service, idempotencyService: idempotencyService, publisher: publisher}
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
