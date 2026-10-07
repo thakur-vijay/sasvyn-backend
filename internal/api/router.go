@@ -16,15 +16,16 @@ import (
 const v1Prefix = "/api/v1"
 
 type Dependencies struct {
-	AuthHandler       *auth.Handler
-	AuthMiddleware    *middleware.Middleware
-	UserHandler       *users.Handler
-	SkillsHandler     *skills.Handler
-	LanguagesHandler  *languages.Handler
-	UploadHandler     *upload.Handler
-	SocialLinkHandler *sociallinks.Handler
-	RealtimeHandler   *realtime.Handler
-	RealtimePublisher *realtime.Publisher
+	AuthHandler        *auth.Handler
+	AuthMiddleware     *middleware.Middleware
+	ClientIdMiddleware *middleware.ClientIDMiddleware
+	UserHandler        *users.Handler
+	SkillsHandler      *skills.Handler
+	LanguagesHandler   *languages.Handler
+	UploadHandler      *upload.Handler
+	SocialLinkHandler  *sociallinks.Handler
+	RealtimeHandler    *realtime.Handler
+	RealtimePublisher  *realtime.Publisher
 }
 
 func NewRouter(dependencies Dependencies) http.Handler {

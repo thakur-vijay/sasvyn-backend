@@ -14,7 +14,7 @@ import (
 func TestNewRouter_ComposesHealthAndVersionedFeatureRoutes(t *testing.T) {
 	userRepository := users.NewRepository(nil)
 	sessionService := sessions.NewService(sessions.NewRepository(nil))
-	authMiddleware := middleware.NewMiddleware(sessionService)
+	authMiddleware := middleware.NewAuthMiddleware(sessionService)
 
 	router := NewRouter(Dependencies{
 		AuthHandler:    auth.NewHandler(auth.NewService(userRepository, sessionService), sessionService),

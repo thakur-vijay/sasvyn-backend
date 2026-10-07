@@ -47,7 +47,8 @@ func BuildRouter(db *sql.DB, limiters *RateLimiters, r2Client *s3.Client) http.H
 	authHandler := auth.NewHandler(authService, sessionService)
 
 	//Middlewares
-	authMiddleware := middleware.NewMiddleware(sessionService)
+	authMiddleware := middleware.NewAuthMiddleware(sessionService)
+	clientIdMiddleware := middleware.NewClientIDMiddleware()
 
 	// Handlers
 	userHandler := users.NewHandler(userRepository, presignClient, idempotencyService)
@@ -58,15 +59,16 @@ func BuildRouter(db *sql.DB, limiters *RateLimiters, r2Client *s3.Client) http.H
 
 	// Router
 	router := api.NewRouter(api.Dependencies{
-		AuthHandler:       authHandler,
-		AuthMiddleware:    authMiddleware,
-		UserHandler:       userHandler,
-		SkillsHandler:     skillsHandler,
-		LanguagesHandler:  languagesHandler,
-		UploadHandler:     uploadHandler,
-		SocialLinkHandler: socialLinksHandler,
-		RealtimeHandler:   realtimeHandler,
-		RealtimePublisher: realtimePublisher,
+		AuthHandler:        authHandler,
+		AuthMiddleware:     authMiddleware,
+		ClientIdMiddleware: clientIdMiddleware,
+		UserHandler:        userHandler,
+		SkillsHandler:      skillsHandler,
+		LanguagesHandler:   languagesHandler,
+		UploadHandler:      uploadHandler,
+		SocialLinkHandler:  socialLinksHandler,
+		RealtimeHandler:    realtimeHandler,
+		RealtimePublisher:  realtimePublisher,
 	})
 
 	// Global Middleware

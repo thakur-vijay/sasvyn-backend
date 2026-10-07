@@ -20,7 +20,7 @@ type Middleware struct {
 	sessionService *sessions.Service
 }
 
-func NewMiddleware(sessionService *sessions.Service) *Middleware {
+func NewAuthMiddleware(sessionService *sessions.Service) *Middleware {
 	return &Middleware{sessionService: sessionService}
 }
 
