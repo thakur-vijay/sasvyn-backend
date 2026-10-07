@@ -18,6 +18,6 @@ type CreateDocumentDTO struct {
 	ID       string `json:"id" validate:"required,valid_uuid4"`
 	Name     string `json:"name" validate:"required"`
 	Category string `json:"category" validate:"required"`
-	FileSize string `json:"file_size" validate:"required"`
+	FileSize int64  `json:"file_size" validate:"required"`
 	Key      string `json:"key" validate:"required"`
 }

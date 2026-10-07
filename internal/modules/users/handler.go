@@ -6,25 +6,21 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/sasvyn/backend/internal/modules/idempotency"
 	"github.com/sasvyn/backend/internal/response"
 )
 
 type Handler struct {
 	repository         *Repository
-	PresignClient      *s3.PresignClient
 	idempotencyService *idempotency.Service
 }
 
 func NewHandler(
 	repository *Repository,
-	presignClient *s3.PresignClient,
 	idempotencyService *idempotency.Service,
 ) *Handler {
 	return &Handler{
 		repository:         repository,
-		PresignClient:      presignClient,
 		idempotencyService: idempotencyService,
 	}
 }

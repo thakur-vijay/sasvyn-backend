@@ -2,6 +2,7 @@ package documents
 
 import (
 	"context"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/sasvyn/backend/internal/storage"
@@ -24,9 +25,28 @@ func NewService(
 
 func (s *Service) Create(
 	ctx context.Context,
-	document Document,
-) error {
-	return s.repository.Create(ctx, document)
+	request CreateDocumentDTO,
+	userID string,
+) (Document, error) {
+	now := time.Now().UTC()
+
+	document := Document{
+		ID:          request.ID,
+		UserID:      userID,
+		Name:        request.Name,
+		Category:    request.Category,
+		FileSize:    request.FileSize,
+		Key:         &request.Key,
+		SyncVersion: 1,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+
+	if err := s.repository.Create(ctx, document); err != nil {
+		return Document{}, err
+	}
+
+	return document, nil
 }
 
 func (s *Service) Fetch(

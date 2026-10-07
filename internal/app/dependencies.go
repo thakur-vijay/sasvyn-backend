@@ -8,6 +8,7 @@ import (
 	"github.com/sasvyn/backend/internal/api"
 	"github.com/sasvyn/backend/internal/middleware"
 	"github.com/sasvyn/backend/internal/modules/auth"
+	"github.com/sasvyn/backend/internal/modules/documents"
 	"github.com/sasvyn/backend/internal/modules/idempotency"
 	"github.com/sasvyn/backend/internal/modules/languages"
 	"github.com/sasvyn/backend/internal/modules/sessions"
@@ -36,6 +37,7 @@ func BuildRouter(db *sql.DB, limiters *RateLimiters, r2Client *s3.Client) http.H
 	skillRepository := skills.NewRepository(db)
 	languagesRepository := languages.NewRepository(db)
 	socialLinksRepository := sociallinks.NewRepository(db)
+	documentsRepository := documents.NewRepository(db)
 
 	// Realtime
 	realtimeManager := realtime.NewManager()
@@ -50,12 +52,16 @@ func BuildRouter(db *sql.DB, limiters *RateLimiters, r2Client *s3.Client) http.H
 	authMiddleware := middleware.NewAuthMiddleware(sessionService)
 	clientIdMiddleware := middleware.NewClientIDMiddleware()
 
+	//services
+	documentsService := documents.NewService(documentsRepository, r2Client)
+
 	// Handlers
-	userHandler := users.NewHandler(userRepository, presignClient, idempotencyService)
+	userHandler := users.NewHandler(userRepository, idempotencyService)
 	skillsHandler := skills.NewHandler(skillRepository, idempotencyService, realtimePublisher)
 	languagesHandler := languages.NewHandler(languagesRepository, idempotencyService)
 	uploadHandler := upload.NewHandler(r2Client, presignClient)
 	socialLinksHandler := sociallinks.NewHandler(socialLinksRepository, idempotencyService)
+	documentsHandler := documents.NewHandler(documentsService)
 
 	// Router
 	router := api.NewRouter(api.Dependencies{
@@ -69,6 +75,7 @@ func BuildRouter(db *sql.DB, limiters *RateLimiters, r2Client *s3.Client) http.H
 		SocialLinkHandler:  socialLinksHandler,
 		RealtimeHandler:    realtimeHandler,
 		RealtimePublisher:  realtimePublisher,
+		DocumentsHandler:   documentsHandler,
 	})
 
 	// Global Middleware

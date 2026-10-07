@@ -12,4 +12,8 @@ const (
 	EventProjectCreated = "project.created"
 	EventProjectUpdated = "project.updated"
 	EventProjectDeleted = "project.deleted"
+
+	EventDocumentCreated = "document.created"
+	EventDocumentUpdated = "document.updated"
+	EventDocumentDeleted = "document.deleted"
 )

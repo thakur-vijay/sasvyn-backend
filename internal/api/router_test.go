@@ -24,7 +24,7 @@ func TestNewRouter_ComposesHealthAndVersionedFeatureRoutes(t *testing.T) {
 			realtime.NewManager(),
 		),
 		AuthMiddleware: authMiddleware,
-		UserHandler:    users.NewHandler(userRepository, nil, nil),
+		UserHandler:    users.NewHandler(userRepository, nil),
 	})
 
 	tests := []struct {
