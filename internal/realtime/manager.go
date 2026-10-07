@@ -74,6 +74,41 @@ func (m *Manager) Remove(userID string, conn *websocket.Conn) {
 	}
 }
 
+func (m *Manager) DisconnectClient(userID, clientID string) error {
+	if clientID == "" {
+		return ErrClientIDRequired
+	}
+
+	m.mu.Lock()
+	connections := m.connections[userID]
+	clientConnections := make([]*websocket.Conn, 0)
+	for conn, connectionClientID := range connections {
+		if connectionClientID == clientID {
+			clientConnections = append(clientConnections, conn)
+			delete(connections, conn)
+		}
+	}
+	if len(connections) == 0 {
+		delete(m.connections, userID)
+	}
+	m.mu.Unlock()
+
+	var disconnectErr error
+	for _, conn := range clientConnections {
+		if err := conn.CloseNow(); err != nil {
+			log.Printf(
+				"[Realtime] Failed to disconnect client | user=%s | client=%s | error=%v",
+				userID,
+				clientID,
+				err,
+			)
+			disconnectErr = errors.Join(disconnectErr, err)
+		}
+	}
+
+	return disconnectErr
+}
+
 func (m *Manager) Send(
 	ctx context.Context,
 	userID string,

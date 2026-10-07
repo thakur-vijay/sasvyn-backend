@@ -12,14 +12,24 @@ import (
 )
 
 type Handler struct {
-	service        *Service
-	sessionService *sessions.Service
+	service            *Service
+	sessionService     *sessions.Service
+	clientDisconnecter ClientDisconnecter
 }
 
-func NewHandler(service *Service, sessionService *sessions.Service) *Handler {
+type ClientDisconnecter interface {
+	DisconnectClient(userID, clientID string) error
+}
+
+func NewHandler(
+	service *Service,
+	sessionService *sessions.Service,
+	clientDisconnecter ClientDisconnecter,
+) *Handler {
 	return &Handler{
-		service:        service,
-		sessionService: sessionService,
+		service:            service,
+		sessionService:     sessionService,
+		clientDisconnecter: clientDisconnecter,
 	}
 }
 
@@ -78,9 +88,21 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.UserID(r.Context())
+	if !ok {
+		response.Write(w, http.StatusUnauthorized, "authentication required")
+		return
+	}
+
 	sessionID, ok := middleware.SessionID(r.Context())
 	if !ok {
 		response.Write(w, http.StatusUnauthorized, "authentication required")
+		return
+	}
+
+	clientID := r.Header.Get("X-Client-ID")
+	if clientID == "" {
+		response.Write(w, http.StatusBadRequest, "X-Client-ID header is required")
 		return
 	}
 
@@ -88,6 +110,10 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Logout error: %v", err)
 		response.Write(w, http.StatusInternalServerError, "logout failed")
 		return
+	}
+
+	if err := h.clientDisconnecter.DisconnectClient(userID, clientID); err != nil {
+		log.Printf("Logout websocket disconnect error: %v", err)
 	}
 
 	response.Write(w, http.StatusOK, "logout successful")

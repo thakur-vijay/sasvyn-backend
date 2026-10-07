@@ -44,7 +44,7 @@ func BuildRouter(db *sql.DB, limiters *RateLimiters, r2Client *s3.Client) http.H
 
 	// Auth
 	authService := auth.NewService(userRepository, sessionService)
-	authHandler := auth.NewHandler(authService, sessionService)
+	authHandler := auth.NewHandler(authService, sessionService, realtimeManager)
 
 	//Middlewares
 	authMiddleware := middleware.NewAuthMiddleware(sessionService)

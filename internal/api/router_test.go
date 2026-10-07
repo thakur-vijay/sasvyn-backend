@@ -9,6 +9,7 @@ import (
 	"github.com/sasvyn/backend/internal/modules/auth"
 	"github.com/sasvyn/backend/internal/modules/sessions"
 	"github.com/sasvyn/backend/internal/modules/users"
+	"github.com/sasvyn/backend/internal/realtime"
 )
 
 func TestNewRouter_ComposesHealthAndVersionedFeatureRoutes(t *testing.T) {
@@ -17,7 +18,11 @@ func TestNewRouter_ComposesHealthAndVersionedFeatureRoutes(t *testing.T) {
 	authMiddleware := middleware.NewAuthMiddleware(sessionService)
 
 	router := NewRouter(Dependencies{
-		AuthHandler:    auth.NewHandler(auth.NewService(userRepository, sessionService), sessionService),
+		AuthHandler: auth.NewHandler(
+			auth.NewService(userRepository, sessionService),
+			sessionService,
+			realtime.NewManager(),
+		),
 		AuthMiddleware: authMiddleware,
 		UserHandler:    users.NewHandler(userRepository, nil, nil),
 	})

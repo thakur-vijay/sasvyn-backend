@@ -46,9 +46,7 @@ func (h *Handler) WebSocket(w http.ResponseWriter, r *http.Request) {
 	for {
 		_, _, err := conn.Read(r.Context())
 		if err != nil {
-			break
+			return
 		}
 	}
-
-	<-r.Context().Done()
 }
