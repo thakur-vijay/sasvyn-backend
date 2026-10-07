@@ -34,14 +34,14 @@ func (h *Handler) CreateUploadURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch request.Type {
-	case UploadTypeProfileImage, UploadTypeProjectScreenshot, UploadTypeAppIcon:
+	case UploadTypeProfileImage, UploadTypeProjectScreenshot, UploadTypeAppIcon, UploadTypeDocument:
 	default:
 		response.Write(w, http.StatusBadRequest, "invalid upload type")
 		return
 	}
 
 	switch request.ContentType {
-	case "image/jpeg", "image/png", "image/webp":
+	case "image/jpeg", "image/png", "image/webp", "application/pdf":
 	default:
 		response.Write(w, http.StatusBadRequest, "invalid content type")
 		return
@@ -80,7 +80,7 @@ func (h *Handler) CreateUploadURL(w http.ResponseWriter, r *http.Request) {
 		"Upload URL generated successfully",
 		CreateUploadURLResponse{
 			UploadURL: presigned.URL,
-			ImgKey:    key,
+			Key:       key,
 		},
 	)
 }

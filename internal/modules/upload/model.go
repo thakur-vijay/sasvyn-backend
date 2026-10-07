@@ -7,5 +7,5 @@ type CreateUploadURLRequest struct {
 
 type CreateUploadURLResponse struct {
 	UploadURL string `json:"upload_url"`
-	ImgKey    string `json:"img_key"`
+	Key       string `json:"key"`
 }

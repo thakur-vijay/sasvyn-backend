@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -35,30 +34,11 @@ func NewR2Client() *s3.Client {
 	})
 }
 
-func CreateImageURL(
-	ctx context.Context,
-	presignClient *s3.PresignClient,
-	imgKey string,
-) (string, error) {
-	if imgKey == "" {
-		return "", nil
-	}
+func DeleteObject(ctx context.Context, client *s3.Client, key string) error {
+	_, err := client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(os.Getenv("R2_BUCKET_NAME")),
+		Key:    aws.String(key),
+	})
 
-	bucket := os.Getenv("R2_BUCKET_NAME")
-
-	presigned, err := presignClient.PresignGetObject(
-		ctx,
-		&s3.GetObjectInput{
-			Bucket: aws.String(bucket),
-			Key:    aws.String(imgKey),
-		},
-		func(options *s3.PresignOptions) {
-			options.Expires = 15 * time.Minute
-		},
-	)
-	if err != nil {
-		return "", err
-	}
-
-	return presigned.URL, nil
+	return err
 }

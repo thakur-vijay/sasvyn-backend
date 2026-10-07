@@ -3,6 +3,7 @@ package documents
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -63,6 +64,72 @@ func (r *Repository) Fetch(ctx context.Context, userID string) ([]Document, erro
 		return nil, err
 	}
 	return documents, nil
+}
+
+func (r *Repository) FetchByID(ctx context.Context, id, userID string) (Document, error) {
+	start := time.Now()
+	defer func() {
+		log.Printf("[DB] FetchDocumentByID: %v", time.Since(start))
+	}()
+
+	var document Document
+
+	err := r.db.QueryRowContext(ctx, `
+	SELECT id, user_id, name, category, file_size, key, sync_version, created_at, updated_at FROM documents WHERE id = $1 AND user_id = $2
+	`,
+		id,
+		userID,
+	).Scan(
+		&document.ID,
+		&document.UserID,
+		&document.Name,
+		&document.Category,
+		&document.FileSize,
+		&document.Key,
+		&document.SyncVersion,
+		&document.CreatedAt,
+		&document.UpdatedAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Document{}, sql.ErrNoRows
+		}
+
+		return Document{}, err
+	}
+
+	document.CreatedAt = document.CreatedAt.UTC()
+	document.UpdatedAt = document.UpdatedAt.UTC()
+	r.attachDocumentURL(&document)
+	return document, nil
+}
+
+func (r *Repository) Delete(ctx context.Context, documentID, userID string) error {
+	start := time.Now()
+	defer func() {
+		log.Printf("[DB] DeleteDocument: %v", time.Since(start))
+	}()
+
+	result, err := r.db.ExecContext(ctx, `
+		DELETE FROM documents
+		WHERE id = $1
+		  AND user_id = $2
+	`, documentID, userID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
 }
 
 func (r *Repository) attachDocumentURL(document *Document) {
