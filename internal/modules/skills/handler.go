@@ -27,6 +27,8 @@ func NewHandler(repository *Repository, idempotencyService *idempotency.Service,
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	userID, _ := middleware.UserID(r.Context())
 	idempotencyKey := r.Header.Get("Idempotency-Key")
+	clientID := r.Header.Get("X-Client-ID")
+
 	var request CreateSkillDTO
 
 	if err := response.DecodeJSON(r, &request); err != nil {
@@ -97,6 +99,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 				Type: realtime.EventSkillCreated,
 				Data: result.Data,
 			},
+			clientID,
 		); err != nil {
 			log.Printf("failed to publish skill.created event: %v", err)
 		}
@@ -143,6 +146,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	skillID := r.PathValue("id")
 	userID, _ := middleware.UserID(r.Context())
 	idempotencyKey := r.Header.Get("Idempotency-Key")
+	clientID := r.Header.Get("X-Client-ID")
 
 	var request UpdateSkillDTO
 	if err := response.DecodeJSONAndValidate(r, &request); err != nil {
@@ -215,6 +219,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 				Type: realtime.EventSkillUpdated,
 				Data: result.Data,
 			},
+			clientID,
 		); err != nil {
 			log.Printf("failed to publish skill.created event: %v", err)
 		}
@@ -225,6 +230,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	skillID := r.PathValue("id")
 	userID, _ := middleware.UserID(r.Context())
 	idempotencyKey := r.Header.Get("Idempotency-Key")
+	clientID := r.Header.Get("X-Client-ID")
 
 	result, err := h.idempotencyService.Execute(r.Context(), userID, idempotencyKey, func() (idempotency.Result, error) {
 		if err := h.repository.Delete(r.Context(), skillID, userID); err != nil {
@@ -275,6 +281,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 				Type: realtime.EventSkillDeleted,
 				Data: result.Data,
 			},
+			clientID,
 		); err != nil {
 			log.Printf("failed to publish skill.created event: %v", err)
 		}
