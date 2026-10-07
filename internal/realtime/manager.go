@@ -3,26 +3,30 @@ package realtime
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"sync"
 
 	"github.com/coder/websocket"
 )
 
+// ErrClientIDRequired is returned when a publish operation has no client ID.
+var ErrClientIDRequired = errors.New("client ID is required")
+
 type Manager struct {
 	mu          sync.RWMutex
-	connections map[string]map[*websocket.Conn]struct{}
+	connections map[string]map[*websocket.Conn]string
 }
 
 func NewManager() *Manager {
 	log.Println("[Realtime] Creating WebSocket manager")
 
 	return &Manager{
-		connections: make(map[string]map[*websocket.Conn]struct{}),
+		connections: make(map[string]map[*websocket.Conn]string),
 	}
 }
 
-func (m *Manager) Add(userID string, conn *websocket.Conn) {
+func (m *Manager) Add(userID, clientID string, conn *websocket.Conn) {
 	log.Printf("[Realtime] Adding connection for user: %s", userID)
 
 	m.mu.Lock()
@@ -31,10 +35,10 @@ func (m *Manager) Add(userID string, conn *websocket.Conn) {
 	if m.connections[userID] == nil {
 		log.Printf("[Realtime] Creating connection pool for user: %s", userID)
 
-		m.connections[userID] = make(map[*websocket.Conn]struct{})
+		m.connections[userID] = make(map[*websocket.Conn]string)
 	}
 
-	m.connections[userID][conn] = struct{}{}
+	m.connections[userID][conn] = clientID
 
 	log.Printf(
 		"[Realtime] Connection added | user=%s | connections=%d",
@@ -73,8 +77,13 @@ func (m *Manager) Remove(userID string, conn *websocket.Conn) {
 func (m *Manager) Send(
 	ctx context.Context,
 	userID string,
+	clientID string,
 	message []byte,
 ) error {
+	if clientID == "" {
+		return ErrClientIDRequired
+	}
+
 	log.Printf(
 		"[Realtime] Sending message | user=%s | payload_size=%d bytes",
 		userID,
@@ -85,7 +94,11 @@ func (m *Manager) Send(
 
 	connections := make([]*websocket.Conn, 0, len(m.connections[userID]))
 
-	for conn := range m.connections[userID] {
+	for conn, connectionClientID := range m.connections[userID] {
+		if connectionClientID == clientID {
+			continue
+		}
+
 		connections = append(connections, conn)
 	}
 
@@ -129,8 +142,13 @@ func (m *Manager) Send(
 func (m *Manager) SendEvent(
 	ctx context.Context,
 	userID string,
+	clientID string,
 	event Event,
 ) error {
+	if clientID == "" {
+		return ErrClientIDRequired
+	}
+
 	log.Printf(
 		"[Realtime] Sending event | user=%s | event=%+v",
 		userID,
@@ -154,5 +172,5 @@ func (m *Manager) SendEvent(
 		len(message),
 	)
 
-	return m.Send(ctx, userID, message)
+	return m.Send(ctx, userID, clientID, message)
 }

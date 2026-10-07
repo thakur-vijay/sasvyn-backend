@@ -5,7 +5,10 @@ import (
 
 	"github.com/coder/websocket"
 	"github.com/sasvyn/backend/internal/middleware"
+	"github.com/sasvyn/backend/internal/response"
 )
+
+const clientIDHeader = "X-Client-ID"
 
 type Handler struct {
 	manager *Manager
@@ -24,12 +27,18 @@ func (h *Handler) WebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	clientID := r.Header.Get(clientIDHeader)
+	if clientID == "" {
+		response.Write(w, http.StatusBadRequest, "X-Client-ID header is required")
+		return
+	}
+
 	conn, err := websocket.Accept(w, r, nil)
 	if err != nil {
 		return
 	}
 
-	h.manager.Add(userID, conn)
+	h.manager.Add(userID, clientID, conn)
 
 	defer h.manager.Remove(userID, conn)
 	defer conn.Close(websocket.StatusNormalClosure, "")

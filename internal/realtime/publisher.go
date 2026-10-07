@@ -12,10 +12,17 @@ func NewPublisher(manager *Manager) *Publisher {
 	}
 }
 
+// Publish sends the event to the user's clients other than the publishing client.
+// Exactly one non-empty client ID is required.
 func (p *Publisher) Publish(
 	ctx context.Context,
 	userID string,
 	event Event,
+	clientIDs ...string,
 ) error {
-	return p.manager.SendEvent(ctx, userID, event)
+	if len(clientIDs) != 1 || clientIDs[0] == "" {
+		return ErrClientIDRequired
+	}
+
+	return p.manager.SendEvent(ctx, userID, clientIDs[0], event)
 }
