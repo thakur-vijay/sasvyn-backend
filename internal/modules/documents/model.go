@@ -6,6 +6,7 @@ import (
 
 type Document struct {
 	model.BaseModel
+	UserID   string  `json:"user_id"`
 	Name     string  `json:"name"`
 	Category string  `json:"category"`
 	FileSize int64   `json:"file_size"`
