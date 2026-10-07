@@ -19,7 +19,7 @@ func (m *ClientIDMiddleware) RequireClientID(next http.Handler) http.Handler {
 		clientID := r.Header.Get(clientIDHeader)
 
 		if clientID == "" {
-			response.Write(w, http.StatusBadRequest, "client id is required")
+			response.Write(w, http.StatusBadRequest, "X-Client-ID header is required")
 			return
 		}
 

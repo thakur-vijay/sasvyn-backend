@@ -33,7 +33,7 @@ func NewRouter(dependencies Dependencies) http.Handler {
 	mux.HandleFunc("GET /health", health)
 
 	v1Mux := http.NewServeMux()
-	auth.RegisterRoutes(v1Mux, dependencies.AuthHandler, dependencies.AuthMiddleware)
+	auth.RegisterRoutes(v1Mux, dependencies.AuthHandler, dependencies.AuthMiddleware, dependencies.ClientIdMiddleware)
 	users.RegisterRoutes(v1Mux, dependencies.UserHandler, dependencies.AuthMiddleware)
 	skills.RegisterRoutes(v1Mux, dependencies.SkillsHandler, dependencies.AuthMiddleware)
 	languages.RegisterRoutes(v1Mux, dependencies.LanguagesHandler, dependencies.AuthMiddleware)
