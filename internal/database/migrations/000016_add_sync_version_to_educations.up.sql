@@ -1,2 +1,0 @@
-ALTER TABLE educations
-ADD COLUMN sync_version BIGINT NOT NULL DEFAULT 1;
