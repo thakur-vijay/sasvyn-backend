@@ -16,4 +16,8 @@ const (
 	EventDocumentCreated = "document.created"
 	EventDocumentUpdated = "document.updated"
 	EventDocumentDeleted = "document.deleted"
+
+	EventEducationCreated = "education.created"
+	EventEducationUpdated = "education.updated"
+	EventEducationDeleted = "education.deleted"
 )

@@ -1,4 +1,4 @@
-package skills
+package education
 
 import (
 	"database/sql"
@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/sasvyn/backend/internal/middleware"
 	"github.com/sasvyn/backend/internal/modules/idempotency"
@@ -15,13 +14,13 @@ import (
 )
 
 type Handler struct {
-	repository         *Repository
+	service            *Service
 	idempotencyService *idempotency.Service
 	publisher          *realtime.Publisher
 }
 
-func NewHandler(repository *Repository, idempotencyService *idempotency.Service, publisher *realtime.Publisher) *Handler {
-	return &Handler{repository: repository, idempotencyService: idempotencyService, publisher: publisher}
+func NewHandler(service *Service, idempotencyService *idempotency.Service, publisher *realtime.Publisher) *Handler {
+	return &Handler{service: service, idempotencyService: idempotencyService, publisher: publisher}
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
@@ -29,7 +28,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	idempotencyKey := r.Header.Get("Idempotency-Key")
 	clientID := r.Header.Get("X-Client-ID")
 
-	var request CreateSkillDTO
+	var request CreateEducationDTO
 
 	if err := response.DecodeJSONAndValidate(r, &request); err != nil {
 		response.Write(w, http.StatusBadRequest, err.Error())
@@ -41,26 +40,15 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		userID,
 		idempotencyKey,
 		func() (idempotency.Result, error) {
-			now := time.Now().UTC()
-
-			skill := Skill{
-				ID:          request.ID,
-				UserID:      userID,
-				Skill:       request.Skill,
-				Category:    request.Category,
-				SyncVersion: 1,
-				CreatedAt:   now,
-				UpdatedAt:   now,
-			}
-
-			if err := h.repository.Create(r.Context(), skill); err != nil {
+			education, err := h.service.Create(r.Context(), request, userID)
+			if err != nil {
 				return idempotency.Result{}, err
 			}
 
 			return idempotency.Result{
 				StatusCode: http.StatusCreated,
-				Message:    "Skill added successfully",
-				Data:       skill,
+				Message:    "Education added successfully",
+				Data:       education,
 			}, nil
 		},
 	)
@@ -75,16 +63,16 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 			response.Write(
 				w,
 				http.StatusNotFound,
-				"Skill was not found",
+				"Education was not found",
 			)
 			return
 		}
 
-		log.Printf("Create Skill error: %v", err)
+		log.Printf("Create Education error: %v", err)
 		response.Write(
 			w,
 			http.StatusInternalServerError,
-			"Skill could not be created",
+			"Education could not be created",
 		)
 		return
 	}
@@ -96,74 +84,74 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 			r.Context(),
 			userID,
 			realtime.Event{
-				Type: realtime.EventSkillCreated,
+				Type: realtime.EventEducationCreated,
 				Data: result.Data,
 			},
 			clientID,
 		); err != nil {
-			log.Printf("failed to publish skill.created event: %v", err)
+			log.Printf("failed to publish education.created event: %v", err)
 		}
 	}
 }
 
 func (h *Handler) Fetch(w http.ResponseWriter, r *http.Request) {
 	userID, _ := middleware.UserID(r.Context())
-	skills, err := h.repository.Fetch(r.Context(), userID)
+	educations, err := h.service.Fetch(r.Context(), userID)
 	if err != nil {
-		response.Write(w, http.StatusInternalServerError, "failed to fetch skills")
+		response.Write(w, http.StatusInternalServerError, "failed to fetch educations")
 		return
 	}
 
-	response.WriteList(w, http.StatusOK, "Skill fetched successfully", skills)
+	response.WriteList(w, http.StatusOK, "Educations fetched successfully", educations)
 }
 
 func (h *Handler) FetchByID(w http.ResponseWriter, r *http.Request) {
-	skillID := r.PathValue("id")
+	educationID := r.PathValue("id")
 	userID, _ := middleware.UserID(r.Context())
 
-	skill, err := h.repository.FetchByID(r.Context(), skillID, userID)
+	education, err := h.service.FetchByID(r.Context(), educationID, userID)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			response.Write(w, http.StatusNotFound, "Skill was not found")
+			response.Write(w, http.StatusNotFound, "Education was not found")
 			return
 		}
 
-		log.Printf("Fetch Skill error: %v", err)
-		response.Write(w, http.StatusInternalServerError, "Failed to fetch Skill")
+		log.Printf("Fetch Education error: %v", err)
+		response.Write(w, http.StatusInternalServerError, "Failed to fetch Education")
 		return
 	}
 
 	response.WriteItem(
 		w,
 		http.StatusOK,
-		"Skill fetched successfully",
-		skill,
+		"Education fetched successfully",
+		education,
 	)
 }
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
-	skillID := r.PathValue("id")
+	educationID := r.PathValue("id")
 	userID, _ := middleware.UserID(r.Context())
 	idempotencyKey := r.Header.Get("Idempotency-Key")
 	clientID := r.Header.Get("X-Client-ID")
 
-	var request UpdateSkillDTO
+	var request UpdateEducationDTO
 	if err := response.DecodeJSONAndValidate(r, &request); err != nil {
 		response.Write(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	result, err := h.idempotencyService.Execute(r.Context(), userID, idempotencyKey, func() (idempotency.Result, error) {
-		updatedSkill, err := h.repository.Update(r.Context(), skillID, userID, request)
+		updatedEducation, err := h.service.Update(r.Context(), request, educationID, userID)
 		if err != nil {
 			return idempotency.Result{}, err
 		}
 
 		return idempotency.Result{
 			StatusCode: http.StatusOK,
-			Message:    "Skill updated successfully",
-			Data:       updatedSkill,
+			Message:    "Education updated successfully",
+			Data:       updatedEducation,
 		}, nil
 	})
 
@@ -181,7 +169,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 			response.Write(
 				w,
 				http.StatusNotFound,
-				"Skill was not found",
+				"Education was not found",
 			)
 			return
 		}
@@ -190,16 +178,16 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 			response.Write(
 				w,
 				http.StatusConflict,
-				"Skill already exists",
+				"Education already exists",
 			)
 			return
 		}
 
-		log.Printf("Update Skill error: %v", err)
+		log.Printf("Update Education error: %v", err)
 		response.Write(
 			w,
 			http.StatusInternalServerError,
-			"Skill could not be updated",
+			"Education could not be updated",
 		)
 
 		return
@@ -216,30 +204,30 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 			r.Context(),
 			userID,
 			realtime.Event{
-				Type: realtime.EventSkillUpdated,
+				Type: realtime.EventEducationUpdated,
 				Data: result.Data,
 			},
 			clientID,
 		); err != nil {
-			log.Printf("failed to publish skill.created event: %v", err)
+			log.Printf("failed to publish education.updated event: %v", err)
 		}
 	}
 }
 
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
-	skillID := r.PathValue("id")
+	educationID := r.PathValue("id")
 	userID, _ := middleware.UserID(r.Context())
 	idempotencyKey := r.Header.Get("Idempotency-Key")
 	clientID := r.Header.Get("X-Client-ID")
 
 	result, err := h.idempotencyService.Execute(r.Context(), userID, idempotencyKey, func() (idempotency.Result, error) {
-		if err := h.repository.Delete(r.Context(), skillID, userID); err != nil {
+		if err := h.service.Delete(r.Context(), educationID, userID); err != nil {
 			return idempotency.Result{}, err
 		}
 
 		return idempotency.Result{
 			StatusCode: http.StatusOK,
-			Message:    "Skill deleted successfully",
+			Message:    "Education deleted successfully",
 		}, nil
 	})
 
@@ -253,16 +241,16 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 			response.Write(
 				w,
 				http.StatusNotFound,
-				"Skill was not found",
+				"Education was not found",
 			)
 			return
 		}
 
-		log.Printf("Delete Skill error: %v", err)
+		log.Printf("Delete Education error: %v", err)
 		response.Write(
 			w,
 			http.StatusInternalServerError,
-			"Skill could not be deleted",
+			"Education could not be deleted",
 		)
 		return
 	}
@@ -278,12 +266,12 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 			r.Context(),
 			userID,
 			realtime.Event{
-				Type: realtime.EventSkillDeleted,
+				Type: realtime.EventEducationDeleted,
 				Data: result.Data,
 			},
 			clientID,
 		); err != nil {
-			log.Printf("failed to publish skill.created event: %v", err)
+			log.Printf("failed to publish education.deleted event: %v", err)
 		}
 	}
 }
