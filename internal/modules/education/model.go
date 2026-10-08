@@ -27,7 +27,7 @@ type CreateEducationDTO struct {
 	Institution  string     `json:"institution" validate:"required"`
 	StartDate    time.Time  `json:"start_date" validate:"required"`
 	EndDate      *time.Time `json:"end_date" validate:"omitempty"`
-	IsPursuing   bool       `json:"is_pursuing" validate:"required"`
+	IsPursuing   bool       `json:"is_pursuing"`
 	Grade        string     `json:"grade" validate:"required"`
 	GradeType    string     `json:"grade_type" validate:"required"`
 	Description  *string    `json:"description" validate:"omitempty,notblank"`
