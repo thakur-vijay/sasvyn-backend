@@ -6,6 +6,7 @@ import (
 	"github.com/sasvyn/backend/internal/middleware"
 	"github.com/sasvyn/backend/internal/modules/auth"
 	"github.com/sasvyn/backend/internal/modules/documents"
+	"github.com/sasvyn/backend/internal/modules/education"
 	"github.com/sasvyn/backend/internal/modules/languages"
 	"github.com/sasvyn/backend/internal/modules/skills"
 	sociallinks "github.com/sasvyn/backend/internal/modules/socialLinks"
@@ -28,6 +29,7 @@ type Dependencies struct {
 	RealtimeHandler    *realtime.Handler
 	RealtimePublisher  *realtime.Publisher
 	DocumentsHandler   *documents.Handler
+	EducationsHandler  *education.Handler
 }
 
 func NewRouter(dependencies Dependencies) http.Handler {
@@ -43,6 +45,7 @@ func NewRouter(dependencies Dependencies) http.Handler {
 	sociallinks.RegisterRoutes(v1Mux, dependencies.SocialLinkHandler, dependencies.AuthMiddleware)
 	realtime.RegisterRoutes(v1Mux, dependencies.RealtimeHandler, dependencies.AuthMiddleware)
 	documents.RegisterRoutes(v1Mux, dependencies.DocumentsHandler, dependencies.AuthMiddleware, dependencies.ClientIdMiddleware)
+	education.RegisterRoutes(v1Mux, dependencies.EducationsHandler, dependencies.AuthMiddleware, dependencies.ClientIdMiddleware)
 	mux.Handle(v1Prefix+"/", http.StripPrefix(v1Prefix, v1Mux))
 
 	return mux
