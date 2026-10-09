@@ -20,4 +20,12 @@ const (
 	EventEducationCreated = "education.created"
 	EventEducationUpdated = "education.updated"
 	EventEducationDeleted = "education.deleted"
+
+	EventExperienceCreated = "experience.created"
+	EventExperienceUpdated = "experience.updated"
+	EventExperienceDeleted = "experience.deleted"
+
+	EventExperienceResponsibilityCreated = "experience_responsibility.created"
+	EventExperienceResponsibilityUpdated = "experience_responsibility.updated"
+	EventExperienceResponsibilityDeleted = "experience_responsibility.deleted"
 )
