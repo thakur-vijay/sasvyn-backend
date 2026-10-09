@@ -33,14 +33,53 @@ func (r *Repository) Fetch(ctx context.Context, userID string) ([]Experience, er
 		log.Printf("[DB] FetchExperiences: %v", time.Since(start))
 	}()
 
-	rows, err := r.db.QueryContext(ctx, `SELECT id, user_id, role, company, start_date, end_date, is_currently_working, location, sync_version, created_at, updated_at FROM experiences WHERE user_id = $1 ORDER BY created_at DESC`, userID)
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT
+			e.id,
+			e.user_id,
+			e.role,
+			e.company,
+			e.start_date,
+			e.end_date,
+			e.is_currently_working,
+			e.location,
+			e.sync_version,
+			e.created_at,
+			e.updated_at,
+
+			er.id,
+			er.experience_id,
+			er.responsibility,
+			er."order",
+			er.sync_version,
+			er.created_at,
+			er.updated_at
+
+		FROM experiences e
+		LEFT JOIN experience_responsibilities er
+			ON er.experience_id = e.id
+		WHERE e.user_id = $1
+		ORDER BY e.created_at DESC, er."order" ASC, er.created_at ASC
+	`, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var experiences []Experience
+
+	experiences := make([]Experience, 0)
+	experienceIndexes := make(map[string]int)
+
 	for rows.Next() {
 		var experience Experience
+
+		var responsibilityID sql.NullString
+		var responsibilityExperienceID sql.NullString
+		var responsibilityText sql.NullString
+		var responsibilityOrder sql.NullInt64
+		var responsibilitySyncVersion sql.NullInt64
+		var responsibilityCreatedAt sql.NullTime
+		var responsibilityUpdatedAt sql.NullTime
+
 		if err := rows.Scan(
 			&experience.ID,
 			&experience.UserID,
@@ -53,17 +92,52 @@ func (r *Repository) Fetch(ctx context.Context, userID string) ([]Experience, er
 			&experience.SyncVersion,
 			&experience.CreatedAt,
 			&experience.UpdatedAt,
+
+			&responsibilityID,
+			&responsibilityExperienceID,
+			&responsibilityText,
+			&responsibilityOrder,
+			&responsibilitySyncVersion,
+			&responsibilityCreatedAt,
+			&responsibilityUpdatedAt,
 		); err != nil {
 			return nil, err
 		}
-		experience.CreatedAt = experience.CreatedAt.UTC()
-		experience.UpdatedAt = experience.UpdatedAt.UTC()
-		experiences = append(experiences, experience)
+
+		index, exists := experienceIndexes[experience.ID]
+		if !exists {
+			experience.CreatedAt = experience.CreatedAt.UTC()
+			experience.UpdatedAt = experience.UpdatedAt.UTC()
+			experience.Responsibilities = make([]ExperienceResponsibility, 0)
+
+			index = len(experiences)
+			experienceIndexes[experience.ID] = index
+			experiences = append(experiences, experience)
+		}
+
+		// LEFT JOIN: responsibility may not exist.
+		if responsibilityID.Valid {
+			responsibility := ExperienceResponsibility{
+				ID:             responsibilityID.String,
+				SyncVersion:    responsibilitySyncVersion.Int64,
+				CreatedAt:      responsibilityCreatedAt.Time.UTC(),
+				UpdatedAt:      responsibilityUpdatedAt.Time.UTC(),
+				ExperienceID:   responsibilityExperienceID.String,
+				Responsibility: responsibilityText.String,
+				Order:          int(responsibilityOrder.Int64),
+			}
+
+			experiences[index].Responsibilities = append(
+				experiences[index].Responsibilities,
+				responsibility,
+			)
+		}
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
+	log.Printf("Experiences with responsibilities: %+v", experiences)
 	return experiences, nil
 }
 
