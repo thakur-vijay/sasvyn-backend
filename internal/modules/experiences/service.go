@@ -113,6 +113,29 @@ func (s *Service) FetchResponsibilities(
 	return s.repository.FetchResponsibilities(ctx, experience.ID)
 }
 
+func (s *Service) FetchResponsibilityByID(
+	ctx context.Context,
+	responsibilityID,
+	experienceID,
+	userID string,
+) (*ExperienceResponsibility, error) {
+	experience, err := s.repository.FetchByID(ctx, experienceID, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	responsibility, err := s.repository.FetchResponsibilityByID(
+		ctx,
+		experience.ID,
+		responsibilityID,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &responsibility, nil
+}
+
 func (s *Service) UpdateResponsibility(
 	ctx context.Context,
 	request UpdateExperienceResponsibilityDTO,

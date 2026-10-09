@@ -373,6 +373,32 @@ func (h *Handler) FetchResponsibilities(w http.ResponseWriter, r *http.Request) 
 	)
 }
 
+func (h *Handler) FetchResponsibilityByID(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	experienceID := r.PathValue("experience_id")
+	responsibilityID := r.PathValue("responsibility_id")
+	userID, _ := middleware.UserID(ctx)
+
+	responsibility, err := h.service.FetchResponsibilityByID(
+		ctx,
+		responsibilityID,
+		experienceID,
+		userID,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			response.Write(w, http.StatusNotFound, "Experience responsibility was not found")
+			return
+		}
+
+		log.Printf("Failed to fetch experience responsibility: %v", err)
+		response.Write(w, http.StatusInternalServerError, "Failed to fetch experience responsibility")
+		return
+	}
+
+	response.WriteItem(w, http.StatusOK, "Experience responsibility fetched successfully", responsibility)
+}
+
 func (h *Handler) UpdateResponsibility(w http.ResponseWriter, r *http.Request) {
 	experienceID := r.PathValue("experience_id")
 	responsibilityID := r.PathValue("responsibility_id")
