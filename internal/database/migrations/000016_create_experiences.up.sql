@@ -4,6 +4,7 @@ CREATE TABLE
         user_id UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,
         role TEXT NOT NULL,
         company TEXT NOT NULL,
+        location TEXT NOT NULL,
         start_date TIMESTAMPTZ NOT NULL,
         end_date TIMESTAMPTZ,
         is_currently_working BOOLEAN NOT NULL DEFAULT FALSE,

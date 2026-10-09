@@ -73,6 +73,34 @@ func buildMessage(dto any, err error) error {
 			jsonName,
 			strings.ReplaceAll(fieldError.Param(), " ", ", "),
 		)
+	case "gte":
+		return fmt.Errorf(
+			"%s of type %s must be greater than or equal to %s",
+			jsonName,
+			fieldType.String(),
+			fieldError.Param(),
+		)
+	case "gt":
+		return fmt.Errorf(
+			"%s of type %s must be greater than %s",
+			jsonName,
+			fieldType.String(),
+			fieldError.Param(),
+		)
+	case "lte":
+		return fmt.Errorf(
+			"%s of type %s must be less than or equal to %s",
+			jsonName,
+			fieldType.String(),
+			fieldError.Param(),
+		)
+	case "lt":
+		return fmt.Errorf(
+			"%s of type %s must be less than %s",
+			jsonName,
+			fieldType.String(),
+			fieldError.Param(),
+		)
 	default:
 		return fmt.Errorf("%s is invalid", jsonName)
 	}
