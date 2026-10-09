@@ -45,7 +45,6 @@ type UpdateExperienceDTO struct {
 
 type CreateExperienceResponsibilityDTO struct {
 	ID             string `json:"id" validate:"required,valid_uuid4"`
-	ExperienceID   string `json:"experience_id" validate:"required,valid_uuid4"`
 	Responsibility string `json:"responsibility" validate:"required"`
 	Order          int    `json:"order" validate:"gte=0"`
 }

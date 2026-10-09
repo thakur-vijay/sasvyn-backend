@@ -289,8 +289,6 @@ func (h *Handler) CreateResponsibility(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	request.ExperienceID = experienceID
-
 	result, err := h.idempotencyService.Execute(
 		r.Context(),
 		userID,
@@ -299,6 +297,7 @@ func (h *Handler) CreateResponsibility(w http.ResponseWriter, r *http.Request) {
 			responsibility, err := h.service.CreateResponsibility(
 				r.Context(),
 				request,
+				experienceID,
 				userID,
 			)
 			if err != nil {

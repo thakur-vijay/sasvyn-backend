@@ -78,13 +78,14 @@ func (s *Service) Delete(
 func (s *Service) CreateResponsibility(
 	ctx context.Context,
 	request CreateExperienceResponsibilityDTO,
+	experienceID string,
 	userID string,
 ) (ExperienceResponsibility, error) {
 	now := time.Now().UTC()
 
 	responsibility := ExperienceResponsibility{
 		ID:             request.ID,
-		ExperienceID:   request.ExperienceID,
+		ExperienceID:   experienceID,
 		Responsibility: request.Responsibility,
 		Order:          request.Order,
 		SyncVersion:    1,
