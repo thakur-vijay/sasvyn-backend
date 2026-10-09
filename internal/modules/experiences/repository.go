@@ -149,35 +149,110 @@ func (r *Repository) FetchByID(ctx context.Context, id, userID string) (Experien
 
 	var experience Experience
 
-	err := r.db.QueryRowContext(ctx, `
-	SELECT id, user_id, role, company, start_date, end_date, is_currently_working, location, sync_version, created_at, updated_at FROM experiences WHERE id = $1 AND user_id = $2
-	`,
-		id,
-		userID,
-	).Scan(
-		&experience.ID,
-		&experience.UserID,
-		&experience.Role,
-		&experience.Company,
-		&experience.StartDate,
-		&experience.EndDate,
-		&experience.IsCurrentlyWorking,
-		&experience.Location,
-		&experience.SyncVersion,
-		&experience.CreatedAt,
-		&experience.UpdatedAt,
-	)
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT
+			e.id,
+			e.user_id,
+			e.role,
+			e.company,
+			e.start_date,
+			e.end_date,
+			e.is_currently_working,
+			e.location,
+			e.sync_version,
+			e.created_at,
+			e.updated_at,
 
+			er.id,
+			er.experience_id,
+			er.responsibility,
+			er."order",
+			er.sync_version,
+			er.created_at,
+			er.updated_at
+
+		FROM experiences e
+		LEFT JOIN experience_responsibilities er
+			ON er.experience_id = e.id
+		WHERE e.id = $1 AND e.user_id = $2
+		ORDER BY er."order" ASC, er.created_at ASC
+	`, id, userID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return Experience{}, sql.ErrNoRows
+		return Experience{}, err
+	}
+	defer rows.Close()
+
+	found := false
+	experience.Responsibilities = make([]ExperienceResponsibility, 0)
+
+	for rows.Next() {
+		var current Experience
+
+		var responsibilityID sql.NullString
+		var responsibilityExperienceID sql.NullString
+		var responsibilityText sql.NullString
+		var responsibilityOrder sql.NullInt64
+		var responsibilitySyncVersion sql.NullInt64
+		var responsibilityCreatedAt sql.NullTime
+		var responsibilityUpdatedAt sql.NullTime
+
+		if err := rows.Scan(
+			&current.ID,
+			&current.UserID,
+			&current.Role,
+			&current.Company,
+			&current.StartDate,
+			&current.EndDate,
+			&current.IsCurrentlyWorking,
+			&current.Location,
+			&current.SyncVersion,
+			&current.CreatedAt,
+			&current.UpdatedAt,
+
+			&responsibilityID,
+			&responsibilityExperienceID,
+			&responsibilityText,
+			&responsibilityOrder,
+			&responsibilitySyncVersion,
+			&responsibilityCreatedAt,
+			&responsibilityUpdatedAt,
+		); err != nil {
+			return Experience{}, err
 		}
 
+		if !found {
+			experience = current
+			experience.CreatedAt = experience.CreatedAt.UTC()
+			experience.UpdatedAt = experience.UpdatedAt.UTC()
+			experience.Responsibilities = make([]ExperienceResponsibility, 0)
+			found = true
+		}
+
+		if responsibilityID.Valid {
+			responsibility := ExperienceResponsibility{
+				ID:             responsibilityID.String,
+				SyncVersion:    responsibilitySyncVersion.Int64,
+				CreatedAt:      responsibilityCreatedAt.Time.UTC(),
+				UpdatedAt:      responsibilityUpdatedAt.Time.UTC(),
+				ExperienceID:   responsibilityExperienceID.String,
+				Responsibility: responsibilityText.String,
+				Order:          int(responsibilityOrder.Int64),
+			}
+
+			experience.Responsibilities = append(
+				experience.Responsibilities,
+				responsibility,
+			)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
 		return Experience{}, err
 	}
 
-	experience.CreatedAt = experience.CreatedAt.UTC()
-	experience.UpdatedAt = experience.UpdatedAt.UTC()
+	if !found {
+		return Experience{}, sql.ErrNoRows
+	}
 
 	return experience, nil
 }
