@@ -8,13 +8,14 @@ import (
 
 type Experience struct {
 	model.BaseModel
-	UserID             string     `json:"user_id"`
-	Role               string     `json:"role"`
-	Company            string     `json:"company"`
-	StartDate          time.Time  `json:"start_date"`
-	EndDate            *time.Time `json:"end_date"`
-	IsCurrentlyWorking bool       `json:"is_currently_working"`
-	Location           string     `json:"location"`
+	UserID             string                     `json:"user_id"`
+	Role               string                     `json:"role"`
+	Company            string                     `json:"company"`
+	StartDate          time.Time                  `json:"start_date"`
+	EndDate            *time.Time                 `json:"end_date"`
+	IsCurrentlyWorking bool                       `json:"is_currently_working"`
+	Location           string                     `json:"location"`
+	Responsibilities   []ExperienceResponsibility `json:"responsibilities"`
 }
 
 type ExperienceResponsibility struct {
