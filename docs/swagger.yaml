@@ -1,19 +1,418 @@
+basePath: /api/v1
+definitions:
+  auth.RefreshRequest:
+    properties:
+      refresh_token:
+        type: string
+    type: object
+  auth.RefreshResponse:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+    type: object
+  auth.SocialLoginRequest:
+    properties:
+      apple_id:
+        type: string
+      email:
+        type: string
+      full_name:
+        type: string
+    type: object
+  auth.SocialLoginResponse:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+      user:
+        $ref: '#/definitions/users.User'
+    type: object
+  skills.CreateSkillDTO:
+    properties:
+      category:
+        type: string
+      id:
+        type: string
+      skill:
+        type: string
+    required:
+    - category
+    - id
+    - skill
+    type: object
+  skills.UpdateSkillDTO:
+    properties:
+      category:
+        type: string
+      skill:
+        type: string
+    type: object
+  users.User:
+    properties:
+      apple_id:
+        type: string
+      created_at:
+        type: string
+      date_of_birth:
+        type: string
+      email:
+        type: string
+      full_name:
+        type: string
+      id:
+        type: string
+      img_url:
+        type: string
+      sync_version:
+        type: integer
+      updated_at:
+        type: string
+    type: object
 info:
   contact: {}
+  description: API documentation for Sasvyn backend.
+  title: Sasvyn Backend API
+  version: "1.0"
 paths:
-  /vijay:
-    get:
-      description: Returns a simple test response
+  /auth/logout:
+    post:
+      description: Invalidate the current session and disconnect the specified client
+      parameters:
+      - description: Client ID
+        in: header
+        name: X-Client-ID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: logout successful
+          schema:
+            type: string
+        "400":
+          description: Client ID is required
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Logout failed
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Log out
+      tags:
+      - Auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Generate new access and refresh tokens using a valid refresh token
+      parameters:
+      - description: Refresh token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.RefreshRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
+            $ref: '#/definitions/auth.RefreshResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
             type: object
-      summary: Test Vijay endpoint
+        "401":
+          description: Invalid refresh token
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Refresh authentication tokens
       tags:
-      - Test
+      - Auth
+  /auth/socialLogin:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate a user using Apple Sign In credentials
+      parameters:
+      - description: Apple sign-in details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.SocialLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.SocialLoginResponse'
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Login failed
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Sign in with Apple
+      tags:
+      - Auth
+  /skills:
+    get:
+      description: Fetch all skills belonging to the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Skills fetched successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Failed to fetch skills
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Fetch all skills
+      tags:
+      - Skills
+    post:
+      consumes:
+      - application/json
+      description: Create a new skill for the authenticated user
+      parameters:
+      - description: Idempotency key
+        in: header
+        name: Idempotency-Key
+        required: true
+        type: string
+      - description: Client ID
+        in: header
+        name: X-Client-ID
+        required: true
+        type: string
+      - description: Skill details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/skills.CreateSkillDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Skill created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a skill
+      tags:
+      - Skills
+  /skills/{id}:
+    delete:
+      description: Delete a skill belonging to the authenticated user
+      parameters:
+      - description: Skill ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Idempotency key
+        in: header
+        name: Idempotency-Key
+        required: true
+        type: string
+      - description: Client ID
+        in: header
+        name: X-Client-ID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Skill deleted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Skill not found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a skill
+      tags:
+      - Skills
+    get:
+      description: Fetch a specific skill belonging to the authenticated user
+      parameters:
+      - description: Skill ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Skill fetched successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Skill not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Failed to fetch skill
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Fetch a skill by ID
+      tags:
+      - Skills
+    put:
+      consumes:
+      - application/json
+      description: Update an existing skill belonging to the authenticated user
+      parameters:
+      - description: Skill ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Idempotency key
+        in: header
+        name: Idempotency-Key
+        required: true
+        type: string
+      - description: Client ID
+        in: header
+        name: X-Client-ID
+        required: true
+        type: string
+      - description: Updated skill details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/skills.UpdateSkillDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Skill updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Skill not found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a skill
+      tags:
+      - Skills
+securityDefinitions:
+  BearerAuth:
+    description: 'Enter your token as: Bearer <token>'
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

@@ -33,6 +33,17 @@ func NewHandler(
 	}
 }
 
+// SocialLogin godoc
+// @Summary Sign in with Apple
+// @Description Authenticate a user using Apple Sign In credentials
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body SocialLoginRequest true "Apple sign-in details"
+// @Success 200 {object} SocialLoginResponse
+// @Failure 400 {object} map[string]interface{} "Invalid request"
+// @Failure 500 {object} map[string]interface{} "Login failed"
+// @Router /auth/socialLogin [post]
 func (h *Handler) SocialLogin(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 
@@ -62,6 +73,17 @@ func (h *Handler) SocialLogin(w http.ResponseWriter, r *http.Request) {
 	response.WriteItem(w, http.StatusOK, "login successful", payload)
 }
 
+// Refresh godoc
+// @Summary Refresh authentication tokens
+// @Description Generate new access and refresh tokens using a valid refresh token
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body RefreshRequest true "Refresh token"
+// @Success 200 {object} RefreshResponse
+// @Failure 400 {object} map[string]interface{} "Invalid request body"
+// @Failure 401 {object} map[string]interface{} "Invalid refresh token"
+// @Router /auth/refresh [post]
 func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 	var request RefreshRequest
 
@@ -87,6 +109,18 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 	response.WriteItem(w, http.StatusOK, "token refreshed successfully", payload)
 }
 
+// Logout godoc
+// @Summary Log out
+// @Description Invalidate the current session and disconnect the specified client
+// @Tags Auth
+// @Produce json
+// @Security BearerAuth
+// @Param X-Client-ID header string true "Client ID"
+// @Success 200 {string} string "logout successful"
+// @Failure 400 {object} map[string]interface{} "Client ID is required"
+// @Failure 401 {object} map[string]interface{} "Authentication required"
+// @Failure 500 {object} map[string]interface{} "Logout failed"
+// @Router /auth/logout [post]
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserID(r.Context())
 	if !ok {

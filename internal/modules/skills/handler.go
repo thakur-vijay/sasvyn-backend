@@ -24,6 +24,22 @@ func NewHandler(repository *Repository, idempotencyService *idempotency.Service,
 	return &Handler{repository: repository, idempotencyService: idempotencyService, publisher: publisher}
 }
 
+// Create godoc
+// @Summary Create a skill
+// @Description Create a new skill for the authenticated user
+// @Tags Skills
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param Idempotency-Key header string true "Idempotency key"
+// @Param X-Client-ID header string true "Client ID"
+// @Param request body CreateSkillDTO true "Skill details"
+// @Success 201 {object} map[string]interface{} "Skill created successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid request"
+// @Failure 401 {object} map[string]interface{} "Authentication required"
+// @Failure 409 {object} map[string]interface{} "Conflict"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /skills [post]
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	userID, _ := middleware.UserID(r.Context())
 	idempotencyKey := r.Header.Get("Idempotency-Key")
@@ -106,6 +122,16 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Fetch godoc
+// @Summary Fetch all skills
+// @Description Fetch all skills belonging to the authenticated user
+// @Tags Skills
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{} "Skills fetched successfully"
+// @Failure 401 {object} map[string]interface{} "Authentication required"
+// @Failure 500 {object} map[string]interface{} "Failed to fetch skills"
+// @Router /skills [get]
 func (h *Handler) Fetch(w http.ResponseWriter, r *http.Request) {
 	userID, _ := middleware.UserID(r.Context())
 	skills, err := h.repository.Fetch(r.Context(), userID)
@@ -117,6 +143,18 @@ func (h *Handler) Fetch(w http.ResponseWriter, r *http.Request) {
 	response.WriteList(w, http.StatusOK, "Skill fetched successfully", skills)
 }
 
+// FetchByID godoc
+// @Summary Fetch a skill by ID
+// @Description Fetch a specific skill belonging to the authenticated user
+// @Tags Skills
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Skill ID"
+// @Success 200 {object} map[string]interface{} "Skill fetched successfully"
+// @Failure 401 {object} map[string]interface{} "Authentication required"
+// @Failure 404 {object} map[string]interface{} "Skill not found"
+// @Failure 500 {object} map[string]interface{} "Failed to fetch skill"
+// @Router /skills/{id} [get]
 func (h *Handler) FetchByID(w http.ResponseWriter, r *http.Request) {
 	skillID := r.PathValue("id")
 	userID, _ := middleware.UserID(r.Context())
@@ -142,6 +180,24 @@ func (h *Handler) FetchByID(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
+// Update godoc
+// @Summary Update a skill
+// @Description Update an existing skill belonging to the authenticated user
+// @Tags Skills
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Skill ID"
+// @Param Idempotency-Key header string true "Idempotency key"
+// @Param X-Client-ID header string true "Client ID"
+// @Param request body UpdateSkillDTO true "Updated skill details"
+// @Success 200 {object} map[string]interface{} "Skill updated successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid request"
+// @Failure 401 {object} map[string]interface{} "Authentication required"
+// @Failure 404 {object} map[string]interface{} "Skill not found"
+// @Failure 409 {object} map[string]interface{} "Conflict"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /skills/{id} [put]
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	skillID := r.PathValue("id")
 	userID, _ := middleware.UserID(r.Context())
@@ -226,6 +282,21 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Delete godoc
+// @Summary Delete a skill
+// @Description Delete a skill belonging to the authenticated user
+// @Tags Skills
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Skill ID"
+// @Param Idempotency-Key header string true "Idempotency key"
+// @Param X-Client-ID header string true "Client ID"
+// @Success 200 {object} map[string]interface{} "Skill deleted successfully"
+// @Failure 401 {object} map[string]interface{} "Authentication required"
+// @Failure 404 {object} map[string]interface{} "Skill not found"
+// @Failure 409 {object} map[string]interface{} "Conflict"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /skills/{id} [delete]
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	skillID := r.PathValue("id")
 	userID, _ := middleware.UserID(r.Context())

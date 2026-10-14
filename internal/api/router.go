@@ -14,6 +14,7 @@ import (
 	"github.com/sasvyn/backend/internal/modules/upload"
 	"github.com/sasvyn/backend/internal/modules/users"
 	"github.com/sasvyn/backend/internal/realtime"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 const v1Prefix = "/api/v1"
@@ -36,6 +37,13 @@ type Dependencies struct {
 
 func NewRouter(dependencies Dependencies) http.Handler {
 	mux := http.NewServeMux()
+	mux.Handle(
+		"GET /swagger/",
+		httpSwagger.Handler(
+			httpSwagger.URL("/swagger/doc.json"),
+			httpSwagger.PersistAuthorization(true),
+		),
+	)
 	mux.HandleFunc("GET /health", health)
 
 	v1Mux := http.NewServeMux()
