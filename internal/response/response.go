@@ -6,6 +6,8 @@ import (
 	"errors"
 	"log"
 	"net/http"
+
+	"github.com/sasvyn/backend/internal/apperrors"
 )
 
 type ListResponse[T any] struct {
@@ -85,24 +87,29 @@ func WriteRaw(
 	_, _ = w.Write(body)
 }
 
-func HandleError(
+func WriteError(w http.ResponseWriter, err error) {
+	appErr := apperrors.Classify(err)
+	if appErr == nil {
+		return
+	}
 
+	write(w, appErr.StatusCode, appErr.Message, nil)
+}
+
+func HandleError(
 	w http.ResponseWriter,
 	err error,
 	errAlreadyProcessing error,
 	notFoundMessage string,
 	internalMessage string,
-
 ) {
-
 	switch {
 	case errors.Is(err, errAlreadyProcessing):
-		Write(w, http.StatusConflict, err.Error())
+		WriteError(w, apperrors.NewConflict(err.Error(), err))
 	case errors.Is(err, sql.ErrNoRows):
 		Write(w, http.StatusNotFound, notFoundMessage)
 	default:
 		log.Printf("handler error: %v", err)
-		Write(w, http.StatusInternalServerError, internalMessage)
+		WriteError(w, apperrors.NewInternal(internalMessage, err))
 	}
-
 }

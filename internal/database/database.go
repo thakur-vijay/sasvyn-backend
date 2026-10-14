@@ -3,25 +3,25 @@ package database
 import (
 	"context"
 	"database/sql"
-	"fmt"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/sasvyn/backend/internal/apperrors"
 )
 
 func Connect(ctx context.Context, databaseURL string) (*sql.DB, error) {
 	if databaseURL == "" {
-		return nil, fmt.Errorf("DATABASE_URL is not set")
+		return nil, apperrors.NewConfigError("DATABASE_URL is not set", nil)
 	}
 
 	db, err := sql.Open("pgx", databaseURL)
 	if err != nil {
-		return nil, err
+		return nil, apperrors.NewServiceUnavailable("database connection failed", err)
 	}
 
 	if ctx != nil {
 		if err := db.PingContext(ctx); err != nil {
 			_ = db.Close()
-			return nil, err
+			return nil, apperrors.NewServiceUnavailable("database ping failed", err)
 		}
 	}
 

@@ -1,9 +1,10 @@
 package config
 
 import (
-	"fmt"
 	"os"
 	"strings"
+
+	"github.com/sasvyn/backend/internal/apperrors"
 )
 
 type Config struct {
@@ -20,7 +21,7 @@ func Load() (*Config, error) {
 	}
 
 	if cfg.DatabaseURL == "" {
-		return nil, fmt.Errorf("DATABASE_URL is not set")
+		return nil, apperrors.NewConfigError("DATABASE_URL is not set", nil)
 	}
 
 	return cfg, nil

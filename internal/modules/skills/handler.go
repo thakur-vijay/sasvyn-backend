@@ -1,13 +1,11 @@
 package skills
 
 import (
-	"database/sql"
-	"errors"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 
+	"github.com/sasvyn/backend/internal/apperrors"
 	"github.com/sasvyn/backend/internal/middleware"
 	"github.com/sasvyn/backend/internal/modules/idempotency"
 	"github.com/sasvyn/backend/internal/realtime"
@@ -48,7 +46,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	var request CreateSkillDTO
 
 	if err := response.DecodeJSONAndValidate(r, &request); err != nil {
-		response.Write(w, http.StatusBadRequest, err.Error())
+		response.WriteError(w, err)
 		return
 	}
 
@@ -82,26 +80,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		if errors.Is(err, idempotency.ErrAlreadyProcessing) {
-			response.Write(w, http.StatusConflict, err.Error())
-			return
-		}
-
-		if errors.Is(err, sql.ErrNoRows) {
-			response.Write(
-				w,
-				http.StatusNotFound,
-				"Skill was not found",
-			)
-			return
-		}
-
-		log.Printf("Create Skill error: %v", err)
-		response.Write(
-			w,
-			http.StatusInternalServerError,
-			"Skill could not be created",
-		)
+		response.WriteError(w, err)
 		return
 	}
 
@@ -136,7 +115,7 @@ func (h *Handler) Fetch(w http.ResponseWriter, r *http.Request) {
 	userID, _ := middleware.UserID(r.Context())
 	skills, err := h.repository.Fetch(r.Context(), userID)
 	if err != nil {
-		response.Write(w, http.StatusInternalServerError, "failed to fetch skills")
+		response.WriteError(w, err)
 		return
 	}
 
@@ -162,13 +141,7 @@ func (h *Handler) FetchByID(w http.ResponseWriter, r *http.Request) {
 	skill, err := h.repository.FetchByID(r.Context(), skillID, userID)
 
 	if err != nil {
-		if err == sql.ErrNoRows {
-			response.Write(w, http.StatusNotFound, "Skill was not found")
-			return
-		}
-
-		log.Printf("Fetch Skill error: %v", err)
-		response.Write(w, http.StatusInternalServerError, "Failed to fetch Skill")
+		response.WriteError(w, apperrors.NewNotFound("Skill was not found", err))
 		return
 	}
 
@@ -206,7 +179,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 	var request UpdateSkillDTO
 	if err := response.DecodeJSONAndValidate(r, &request); err != nil {
-		response.Write(w, http.StatusBadRequest, err.Error())
+		response.WriteError(w, err)
 		return
 	}
 
@@ -224,40 +197,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		if errors.Is(err, idempotency.ErrAlreadyProcessing) {
-			response.Write(
-				w,
-				http.StatusConflict,
-				err.Error(),
-			)
-			return
-		}
-
-		if errors.Is(err, sql.ErrNoRows) {
-			response.Write(
-				w,
-				http.StatusNotFound,
-				"Skill was not found",
-			)
-			return
-		}
-
-		if strings.Contains(err.Error(), "23505") {
-			response.Write(
-				w,
-				http.StatusConflict,
-				"Skill already exists",
-			)
-			return
-		}
-
-		log.Printf("Update Skill error: %v", err)
-		response.Write(
-			w,
-			http.StatusInternalServerError,
-			"Skill could not be updated",
-		)
-
+		response.WriteError(w, err)
 		return
 	}
 
@@ -315,26 +255,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		if errors.Is(err, idempotency.ErrAlreadyProcessing) {
-			response.Write(w, http.StatusConflict, err.Error())
-			return
-		}
-
-		if errors.Is(err, sql.ErrNoRows) {
-			response.Write(
-				w,
-				http.StatusNotFound,
-				"Skill was not found",
-			)
-			return
-		}
-
-		log.Printf("Delete Skill error: %v", err)
-		response.Write(
-			w,
-			http.StatusInternalServerError,
-			"Skill could not be deleted",
-		)
+		response.WriteError(w, err)
 		return
 	}
 

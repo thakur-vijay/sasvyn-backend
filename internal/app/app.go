@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/sasvyn/backend/internal/apperrors"
 	"github.com/sasvyn/backend/internal/config"
 	"github.com/sasvyn/backend/internal/database"
 	"github.com/sasvyn/backend/internal/storage"
@@ -20,7 +21,7 @@ type App struct {
 
 func New(cfg *config.Config) (*App, error) {
 	if cfg == nil {
-		return nil, nil
+		return nil, apperrors.NewConfigError("application configuration is required", nil)
 	}
 
 	db, err := database.Connect(context.Background(), cfg.DatabaseURL)
@@ -29,14 +30,14 @@ func New(cfg *config.Config) (*App, error) {
 	}
 
 	if err := database.Migrate(db, cfg.DatabaseURL); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, err
 	}
 
 	limiters, err := NewRateLimiters()
 	if err != nil {
-		db.Close()
-		return nil, err
+		_ = db.Close()
+		return nil, apperrors.NewInternal("rate limiter initialization failed", err)
 	}
 	r2Client := storage.NewR2Client()
 	router := BuildRouter(db, limiters, r2Client)

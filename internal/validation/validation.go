@@ -9,6 +9,17 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+type ValidationError struct {
+	Message string
+}
+
+func (e *ValidationError) Error() string {
+	if e == nil {
+		return "validation failed"
+	}
+	return e.Message
+}
+
 var validate = validator.New()
 
 func init() {
