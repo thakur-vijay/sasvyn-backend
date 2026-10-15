@@ -1,11 +1,8 @@
 package education
 
 import (
-	"database/sql"
-	"errors"
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/sasvyn/backend/internal/middleware"
 	"github.com/sasvyn/backend/internal/modules/idempotency"
@@ -54,26 +51,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		if errors.Is(err, idempotency.ErrAlreadyProcessing) {
-			response.Write(w, http.StatusConflict, err.Error())
-			return
-		}
-
-		if errors.Is(err, sql.ErrNoRows) {
-			response.Write(
-				w,
-				http.StatusNotFound,
-				"Education was not found",
-			)
-			return
-		}
-
-		log.Printf("Create Education error: %v", err)
-		response.Write(
-			w,
-			http.StatusInternalServerError,
-			"Education could not be created",
-		)
+		response.WriteError(w, err)
 		return
 	}
 
@@ -98,7 +76,7 @@ func (h *Handler) Fetch(w http.ResponseWriter, r *http.Request) {
 	userID, _ := middleware.UserID(r.Context())
 	educations, err := h.service.Fetch(r.Context(), userID)
 	if err != nil {
-		response.Write(w, http.StatusInternalServerError, "failed to fetch educations")
+		response.WriteError(w, err)
 		return
 	}
 
@@ -112,13 +90,7 @@ func (h *Handler) FetchByID(w http.ResponseWriter, r *http.Request) {
 	education, err := h.service.FetchByID(r.Context(), educationID, userID)
 
 	if err != nil {
-		if err == sql.ErrNoRows {
-			response.Write(w, http.StatusNotFound, "Education was not found")
-			return
-		}
-
-		log.Printf("Fetch Education error: %v", err)
-		response.Write(w, http.StatusInternalServerError, "Failed to fetch Education")
+		response.WriteError(w, err)
 		return
 	}
 
@@ -156,40 +128,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		if errors.Is(err, idempotency.ErrAlreadyProcessing) {
-			response.Write(
-				w,
-				http.StatusConflict,
-				err.Error(),
-			)
-			return
-		}
-
-		if errors.Is(err, sql.ErrNoRows) {
-			response.Write(
-				w,
-				http.StatusNotFound,
-				"Education was not found",
-			)
-			return
-		}
-
-		if strings.Contains(err.Error(), "23505") {
-			response.Write(
-				w,
-				http.StatusConflict,
-				"Education already exists",
-			)
-			return
-		}
-
-		log.Printf("Update Education error: %v", err)
-		response.Write(
-			w,
-			http.StatusInternalServerError,
-			"Education could not be updated",
-		)
-
+		response.WriteError(w, err)
 		return
 	}
 
@@ -232,26 +171,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		if errors.Is(err, idempotency.ErrAlreadyProcessing) {
-			response.Write(w, http.StatusConflict, err.Error())
-			return
-		}
-
-		if errors.Is(err, sql.ErrNoRows) {
-			response.Write(
-				w,
-				http.StatusNotFound,
-				"Education was not found",
-			)
-			return
-		}
-
-		log.Printf("Delete Education error: %v", err)
-		response.Write(
-			w,
-			http.StatusInternalServerError,
-			"Education could not be deleted",
-		)
+		response.WriteError(w, err)
 		return
 	}
 

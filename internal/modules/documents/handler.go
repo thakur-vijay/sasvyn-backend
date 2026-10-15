@@ -1,8 +1,6 @@
 package documents
 
 import (
-	"database/sql"
-	"errors"
 	"log"
 	"net/http"
 
@@ -58,26 +56,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		if errors.Is(err, idempotency.ErrAlreadyProcessing) {
-			response.Write(w, http.StatusConflict, err.Error())
-			return
-		}
-
-		if errors.Is(err, sql.ErrNoRows) {
-			response.Write(
-				w,
-				http.StatusNotFound,
-				"Document was not found",
-			)
-			return
-		}
-
-		log.Printf("Create Document error: %v", err)
-		response.Write(
-			w,
-			http.StatusInternalServerError,
-			"Document could not be created",
-		)
+		response.WriteError(w, err)
 		return
 	}
 
@@ -102,7 +81,7 @@ func (h *Handler) Fetch(w http.ResponseWriter, r *http.Request) {
 	userID, _ := middleware.UserID(r.Context())
 	documents, err := h.service.Fetch(r.Context(), userID)
 	if err != nil {
-		response.Write(w, http.StatusInternalServerError, "failed to fetch documents")
+		response.WriteError(w, err)
 		return
 	}
 
@@ -116,13 +95,7 @@ func (h *Handler) FetchByID(w http.ResponseWriter, r *http.Request) {
 	document, err := h.service.FetchByID(r.Context(), documentID, userID)
 
 	if err != nil {
-		if err == sql.ErrNoRows {
-			response.Write(w, http.StatusNotFound, "Document was not found")
-			return
-		}
-
-		log.Printf("Fetch Document error: %v", err)
-		response.Write(w, http.StatusInternalServerError, "Failed to fetch Document")
+		response.WriteError(w, err)
 		return
 	}
 
@@ -152,26 +125,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		if errors.Is(err, idempotency.ErrAlreadyProcessing) {
-			response.Write(w, http.StatusConflict, err.Error())
-			return
-		}
-
-		if errors.Is(err, sql.ErrNoRows) {
-			response.Write(
-				w,
-				http.StatusNotFound,
-				"Document was not found",
-			)
-			return
-		}
-
-		log.Printf("Delete Document error: %v", err)
-		response.Write(
-			w,
-			http.StatusInternalServerError,
-			"Document could not be deleted",
-		)
+		response.WriteError(w, err)
 		return
 	}
 

@@ -1,11 +1,8 @@
 package experiences
 
 import (
-	"database/sql"
-	"errors"
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/sasvyn/backend/internal/middleware"
 	"github.com/sasvyn/backend/internal/modules/idempotency"
@@ -54,26 +51,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		if errors.Is(err, idempotency.ErrAlreadyProcessing) {
-			response.Write(w, http.StatusConflict, err.Error())
-			return
-		}
-
-		if errors.Is(err, sql.ErrNoRows) {
-			response.Write(
-				w,
-				http.StatusNotFound,
-				"Experience was not found",
-			)
-			return
-		}
-
-		log.Printf("Create Experience error: %v", err)
-		response.Write(
-			w,
-			http.StatusInternalServerError,
-			"Experience could not be created",
-		)
+		response.WriteError(w, err)
 		return
 	}
 
@@ -98,7 +76,7 @@ func (h *Handler) Fetch(w http.ResponseWriter, r *http.Request) {
 	userID, _ := middleware.UserID(r.Context())
 	experiences, err := h.service.Fetch(r.Context(), userID)
 	if err != nil {
-		response.Write(w, http.StatusInternalServerError, "failed to fetch experiences")
+		response.WriteError(w, err)
 		return
 	}
 
@@ -112,13 +90,7 @@ func (h *Handler) FetchByID(w http.ResponseWriter, r *http.Request) {
 	experience, err := h.service.FetchByID(r.Context(), id, userID)
 
 	if err != nil {
-		if err == sql.ErrNoRows {
-			response.Write(w, http.StatusNotFound, "Experience was not found")
-			return
-		}
-
-		log.Printf("Fetch Experience error: %v", err)
-		response.Write(w, http.StatusInternalServerError, "Failed to fetch Experience")
+		response.WriteError(w, err)
 		return
 	}
 
@@ -156,40 +128,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		if errors.Is(err, idempotency.ErrAlreadyProcessing) {
-			response.Write(
-				w,
-				http.StatusConflict,
-				err.Error(),
-			)
-			return
-		}
-
-		if errors.Is(err, sql.ErrNoRows) {
-			response.Write(
-				w,
-				http.StatusNotFound,
-				"Experience was not found",
-			)
-			return
-		}
-
-		if strings.Contains(err.Error(), "23505") {
-			response.Write(
-				w,
-				http.StatusConflict,
-				"Experience already exists",
-			)
-			return
-		}
-
-		log.Printf("Update Experience error: %v", err)
-		response.Write(
-			w,
-			http.StatusInternalServerError,
-			"Experience could not be updated",
-		)
-
+		response.WriteError(w, err)
 		return
 	}
 
@@ -232,26 +171,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		if errors.Is(err, idempotency.ErrAlreadyProcessing) {
-			response.Write(w, http.StatusConflict, err.Error())
-			return
-		}
-
-		if errors.Is(err, sql.ErrNoRows) {
-			response.Write(
-				w,
-				http.StatusNotFound,
-				"Experience was not found",
-			)
-			return
-		}
-
-		log.Printf("Delete Experience error: %v", err)
-		response.Write(
-			w,
-			http.StatusInternalServerError,
-			"Experience could not be deleted",
-		)
+		response.WriteError(w, err)
 		return
 	}
 
@@ -313,18 +233,7 @@ func (h *Handler) CreateResponsibility(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		if errors.Is(err, idempotency.ErrAlreadyProcessing) {
-			response.Write(w, http.StatusConflict, err.Error())
-			return
-		}
-
-		if errors.Is(err, sql.ErrNoRows) {
-			response.Write(w, http.StatusNotFound, "Experience was not found")
-			return
-		}
-
-		log.Printf("Create Experience Responsibility error: %v", err)
-		response.Write(w, http.StatusInternalServerError, "Experience responsibility could not be created")
+		response.WriteError(w, err)
 		return
 	}
 
@@ -355,13 +264,7 @@ func (h *Handler) FetchResponsibilities(w http.ResponseWriter, r *http.Request) 
 		userID,
 	)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			response.Write(w, http.StatusNotFound, "Experience was not found")
-			return
-		}
-
-		log.Printf("Fetch Experience Responsibilities error: %v", err)
-		response.Write(w, http.StatusInternalServerError, "Failed to fetch experience responsibilities")
+		response.WriteError(w, err)
 		return
 	}
 
@@ -386,13 +289,7 @@ func (h *Handler) FetchResponsibilityByID(w http.ResponseWriter, r *http.Request
 		userID,
 	)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			response.Write(w, http.StatusNotFound, "Experience responsibility was not found")
-			return
-		}
-
-		log.Printf("Failed to fetch experience responsibility: %v", err)
-		response.Write(w, http.StatusInternalServerError, "Failed to fetch experience responsibility")
+		response.WriteError(w, err)
 		return
 	}
 
@@ -438,18 +335,7 @@ func (h *Handler) UpdateResponsibility(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		if errors.Is(err, idempotency.ErrAlreadyProcessing) {
-			response.Write(w, http.StatusConflict, err.Error())
-			return
-		}
-
-		if errors.Is(err, sql.ErrNoRows) {
-			response.Write(w, http.StatusNotFound, "Experience responsibility was not found")
-			return
-		}
-
-		log.Printf("Update Experience Responsibility error: %v", err)
-		response.Write(w, http.StatusInternalServerError, "Experience responsibility could not be updated")
+		response.WriteError(w, err)
 		return
 	}
 
@@ -503,18 +389,7 @@ func (h *Handler) DeleteResponsibility(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		if errors.Is(err, idempotency.ErrAlreadyProcessing) {
-			response.Write(w, http.StatusConflict, err.Error())
-			return
-		}
-
-		if errors.Is(err, sql.ErrNoRows) {
-			response.Write(w, http.StatusNotFound, "Experience responsibility was not found")
-			return
-		}
-
-		log.Printf("Delete Experience Responsibility error: %v", err)
-		response.Write(w, http.StatusInternalServerError, "Experience responsibility could not be deleted")
+		response.WriteError(w, err)
 		return
 	}
 

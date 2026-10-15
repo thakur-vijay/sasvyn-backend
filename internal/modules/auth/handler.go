@@ -122,27 +122,12 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} map[string]interface{} "Logout failed"
 // @Router /auth/logout [post]
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.UserID(r.Context())
-	if !ok {
-		response.Write(w, http.StatusUnauthorized, "authentication required")
-		return
-	}
-
-	sessionID, ok := middleware.SessionID(r.Context())
-	if !ok {
-		response.Write(w, http.StatusUnauthorized, "authentication required")
-		return
-	}
-
+	userID, _ := middleware.UserID(r.Context())
 	clientID := r.Header.Get("X-Client-ID")
-	if clientID == "" {
-		response.Write(w, http.StatusBadRequest, "X-Client-ID header is required")
-		return
-	}
+	sessionID, _ := middleware.SessionID(r.Context())
 
 	if err := h.sessionService.Logout(r.Context(), sessionID); err != nil {
-		log.Printf("Logout error: %v", err)
-		response.Write(w, http.StatusInternalServerError, "logout failed")
+		response.WriteError(w, err)
 		return
 	}
 
