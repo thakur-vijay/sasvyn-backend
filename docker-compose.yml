@@ -4,9 +4,9 @@ services:
     container_name: sasvyn-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: sasvyn
-      POSTGRES_PASSWORD: sasvyn
-      POSTGRES_DB: sasvyn
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
     ports:
       - "5433:5432"
     volumes:
